@@ -4,6 +4,71 @@
 #include <string.h>
 #include "parser.h"
 
+
+typedef enum {
+              T_KEYWORD,
+              T_NUMBER,
+              T_VARIABLE,
+              T_WORD
+} TokenType;
+
+
+typedef enum {
+              K_ANGLE_LEFT,
+              K_ANGLE_RIGHT,
+              K_AND,
+              K_OR,
+              K_NOT,
+              K_IF,
+              K_REMOVES,
+              K_DISPLAYS,
+              K_CAUSES,
+              K_CHOICE,
+              K_AVAILABLE_WHEN,
+              K_INITIAL_STATE,
+              K_IS,
+              K_ACTION,
+              K_WITH_PRIORITY,
+              K_CURLY_LEFT,
+              K_CURLY_RIGHT
+
+} KeywordType;
+
+
+
+typedef struct token {
+  TokenType token_type;
+  Context context;
+} Token;
+
+
+typedef struct {
+  TokenType token_type;
+  Context context;
+  KeywordType keyword;
+} Keyword;
+
+typedef struct {
+  TokenType token_type;
+  Context context;
+  int number;
+  char * number_representation;
+} Number;
+
+typedef struct {
+  TokenType token_type;
+  Context context;
+  char * variable;
+} Variable;
+
+typedef struct {
+  TokenType token_type;
+  Context context;
+  char * word;
+} Word;
+
+
+
 const char * TOKEN_TYPES[] = {
                               "keyword",
                               "number",
@@ -766,7 +831,7 @@ void clause_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
   
 }
 
-long load_file(char * filename){
+long load_file(const char * filename){
    FILE *f = fopen(filename, "rb");
   fseek(f, 0, SEEK_END);
   long fsize = ftell(f);
