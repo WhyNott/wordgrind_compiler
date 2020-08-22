@@ -6,9 +6,14 @@ fn main() {
     let mut tokens_counter = 0;
     let mut oracle_counter = 0;
     let mut varset = 0;
-    while tokens_counter < (tokens_size-1) {
+    while tokens_counter < tokens_size {
         let clause = parser::parse_clause(&mut tokens_counter, tokens_size, &mut  oracle_counter, &mut varset);
-        println!("{:?}\n", clause);
+        tokens_counter += 1;
+        
+        println!("{}\n", clause);
+    
     }
+    parser::clean_up_memory();
     
 }
+

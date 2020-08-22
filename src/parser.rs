@@ -64,6 +64,37 @@ pub enum Sentence {
     }
 }
 
+use std::fmt;
+impl fmt::Display for Sentence {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Sentence::Sentence {name, elements, context:_} => {
+
+                write!(f, "'{}'(", name)?;
+                for (i, element) in elements.iter().enumerate() {
+                    write!(f, "{}", element)?;
+                    if i != (elements.len()-1){
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, ")")
+                    
+            },
+            
+            Sentence::Variable {variable_name, variable_id, context:_} => {
+
+                write!(f, "?{}<{}>", variable_name, variable_id)
+
+            }
+            
+
+        }
+        
+    }
+
+
+}
+
 
 pub fn rustify_sentence(sentence: *const parser_c::Sentence) -> Sentence{
     unsafe {
@@ -110,6 +141,41 @@ pub enum LogicVerb {
     Or(Vec<LogicVerb>),
 }
 
+impl fmt::Display for LogicVerb {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {       
+        match self {
+            LogicVerb::Sentence(s) => write!(f, "{}", s),
+            LogicVerb::And(verbs) => {
+                write!(f, "and(\n")?;
+
+                for (i, sentence) in verbs.iter().enumerate() {
+                    write!(f, "          {}", sentence)?;
+                    if i != (verbs.len()-1){
+                        write!(f, ",")?;
+                    }
+                    write!(f, "\n")?;
+              
+            }
+                write!(f, "     )")
+            },
+            LogicVerb::Or(verbs) => {
+                write!(f, "or(")?;
+                for (i, sentence) in verbs.iter().enumerate() {
+                write!(f, "{}", sentence)?;
+                if i != (verbs.len()-1){
+                        write!(f, ",")?;
+                }
+              
+            }
+                write!(f, ")")
+            }
+           
+           
+           
+               
+        }
+    }
+}
 
 pub fn rustify_logic_verb(lverb: *const parser_c::LogicVerb) -> LogicVerb{
     unsafe {
@@ -150,6 +216,22 @@ pub struct Clause {
     pub body: Option<LogicVerb>,
     pub context: Box::<Context>
 
+}
+
+impl fmt::Display for Clause {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.head)?;
+        match &self.body {
+            Some(body) => {
+                write!(f, ":- \n     {}", body)
+            }
+            None => {
+                Ok(())
+                    
+            }           
+
+        }
+    }
 }
 
 pub fn rustify_clause(cl: *const parser_c::Clause) -> Clause {
@@ -194,4 +276,8 @@ pub fn parse_clause(tokens_counter : &mut i32, tokens_size : i32, oracle_counter
    
 }
 
-
+pub fn clean_up_memory(){
+    unsafe {
+        parser_c::globals_free();
+    }
+}
