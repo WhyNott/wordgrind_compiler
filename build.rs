@@ -9,7 +9,7 @@ fn main() {
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=parser.h");
-
+    println!("cargo:rerun-if-changed=parser.c");
     
     let bindings = bindgen::Builder::default()
         .header("parser.h")

@@ -38,6 +38,7 @@ pub fn rustify_context(context: *const parser_c::Context) -> Context{
             .to_string();
         line_number = (*context).line_number;
         column_number = (*context).column_number;
+                
         file_name = CStr::from_ptr((*context).file_name)
             .to_str()
             .expect("Incorrect utf8 data in file_name")
@@ -94,23 +95,43 @@ impl fmt::Display for Sentence {
 
 
 }
+use std::collections::BTreeMap;
 
-
-pub fn rustify_sentence(sentence: *const parser_c::Sentence) -> Sentence{
-    unsafe {
-        if (*sentence).name.is_null() {
-            let variable = sentence as *const parser_c::VariableSentence;
-            let variable_name = CStr::from_ptr((*variable).variable_name)
+pub fn rustify_sentence(sentence: *const parser_c::Sentence, varset: &mut BTreeMap<String, i32>) -> Sentence{
+    
+    if unsafe { (*sentence).name.is_null() } {
+        let variable;
+        let variable_name;
+        let mut variable_id : i32;
+        let context;
+        unsafe {
+            variable  = sentence as *const parser_c::VariableSentence;
+            variable_name = CStr::from_ptr((*variable).variable_name)
                 .to_str()
                 .expect("Incorrect utf8 data in variable name")
                 .to_string();
-            let variable_id = (*variable).variable_id;
-            let context = Box::new(rustify_context((*variable).context));
-          
-            Sentence::Variable {variable_name, variable_id, context: context}
+            variable_id = (*variable).variable_id;
+            context = Box::new(rustify_context((*variable).context));
+            
+        }
+        if varset.contains_key(&variable_name) {
+            variable_id = *varset.get(&variable_name).expect("Item missing");
+        }else {
+            varset.insert(variable_name.clone(), variable_id);
+                    
+        }
+   
+
+   
+
+
+       
+        //println!("{}", variable_id);
+        Sentence::Variable {variable_name, variable_id, context}
 
       
-        } else {
+    } else {
+        unsafe {
             let name = CStr::from_ptr((*sentence).name)
                 .to_str()
                 .expect("Incorrect utf8 data in sentence name")
@@ -119,18 +140,18 @@ pub fn rustify_sentence(sentence: *const parser_c::Sentence) -> Sentence{
             let mut elements_new = Vec::with_capacity((*sentence).elements_length as usize);
             
             for element in elements_old {
-                elements_new.push(rustify_sentence(element));
+                elements_new.push(rustify_sentence(element, varset));
             }
             let context = Box::new(rustify_context((*sentence).context));
 
-            Sentence::Sentence {name, elements: elements_new, context: context}
+            Sentence::Sentence {name, elements: elements_new,  context}
 
-
+        }
          
           
         }
         
-    }
+    
 
 }
 
@@ -177,21 +198,22 @@ impl fmt::Display for LogicVerb {
     }
 }
 
-pub fn rustify_logic_verb(lverb: *const parser_c::LogicVerb) -> LogicVerb{
+pub fn rustify_logic_verb(lverb: *const parser_c::LogicVerb, varset: &mut BTreeMap<String, i32>) -> LogicVerb{
     unsafe {
-        let process_contents = ||{
+        let mut process_contents = ||{
             let nested = *(*lverb).contents.nested;
             let contents_old : &[parser_c::LogicVerb] = slice::from_raw_parts(nested.contents, nested.contents_length as usize);
             let mut contents_new = Vec::with_capacity(nested.contents_length as usize);
             for element in contents_old {
-                contents_new.push(rustify_logic_verb(element));
+                contents_new.push(rustify_logic_verb(element, varset));
+            
             }
             contents_new
         };
         
         match (*lverb).type_ {
             parser_c::VerbType_L_SENTENCE => {
-                LogicVerb::Sentence(rustify_sentence((*lverb).contents.basic))
+                LogicVerb::Sentence(rustify_sentence((*lverb).contents.basic, varset))
             },
             parser_c::VerbType_L_AND => {
                 
@@ -234,14 +256,15 @@ impl fmt::Display for Clause {
     }
 }
 
-pub fn rustify_clause(cl: *const parser_c::Clause) -> Clause {
+pub fn rustify_clause(cl: *const parser_c::Clause, varset: &mut BTreeMap<String, i32>) -> Clause {
+    
     unsafe {
         Clause {
-            head: rustify_sentence((*cl).head),
+            head: rustify_sentence((*cl).head, varset),
             body: if (*cl).body.is_null() {
                 None
             } else {
-                Some(rustify_logic_verb((*cl).body))
+                Some(rustify_logic_verb((*cl).body, varset))
             },
             context: Box::new(rustify_context((*cl).context))
         }
@@ -251,33 +274,31 @@ pub fn rustify_clause(cl: *const parser_c::Clause) -> Clause {
 
 
 
-pub fn consult_file(filename: &str) -> i32{
-    let x = &mut [0];
+pub fn tokenize_file<'a>(filename: &'a str, x:&'a mut i32){
     let c_filename = CString::new(filename).expect("CString::new failed");
     unsafe {
-        parser_c::consult_file(c_filename.as_ptr() as *mut i8, x.as_mut_ptr());   
+        parser_c::consult_file(c_filename.as_ptr() as *mut i8, x);   
     };
-    x[0]
+   
+}
+
+pub fn parse_clause(tokens_counter : &mut i32, tokens_size : &i32, oracle_counter : &mut i32, varset : &mut i32) -> Clause{
+    let oracle_size = 0; //I have a theory that this actually doesn't matter
+    let mut clause : parser_c::Clause;
+    
+    unsafe {
+        clause = parser_c::NULL_CLAUSE;
+        
+        parser_c::clause_parse(&mut clause, parser_c::tokens, *tokens_size, tokens_counter, parser_c::oracle_base, oracle_size, oracle_counter, varset);
+    }
+        rustify_clause(&clause, &mut BTreeMap::new())
         
 }
 
-pub fn parse_clause(tokens_counter : &mut i32, tokens_size : i32, oracle_counter : &mut i32, varset : &mut i32) -> Clause{
-    let oracle_size = 0; //I have a theory that this actually doesn't matter
-   
-    unsafe {
-        let mut clause : parser_c::Clause = parser_c::NULL_CLAUSE;
-        
-        parser_c::clause_parse(&mut clause, parser_c::tokens, tokens_size, tokens_counter, parser_c::oracle_base, oracle_size, oracle_counter, varset);
- 
-        //parser_c::clause_print(&mut clause);
-        rustify_clause(&clause)
-        
-    }
-   
-}
 
 pub fn clean_up_memory(){
     unsafe {
         parser_c::globals_free();
     }
 }
+

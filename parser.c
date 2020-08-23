@@ -320,7 +320,7 @@ for (int i = 0; i < fsize+1; i++) {
         token_context->leading_whitespace = buffer;            
         buffer = arena_base + arena_current;                   
         token_context->line_number = line_counter;             
-        token_context->column_number = column_counter;         
+        token_context->column_number = column_counter;
         token_context->file_name = filename;
       
         *(char *)(arenalloc(sizeof(char))) = current_char;
@@ -851,8 +851,10 @@ void consult_file(const char * filename, int * tokens_size){
  
   arena_capacity = (fsize + 200) * sizeof(char) * 640;
   arena_base = malloc(arena_capacity);
-
-  tokenize(filename, file, fsize, &tokens, tokens_size);
+  char * new_filename = arenalloc(sizeof(char)* (strlen(filename)+1));
+  strcpy(new_filename, filename);
+  
+  tokenize(new_filename, file, fsize, &tokens, tokens_size);
   
   
   for (int i = 0; i < (*tokens_size); i++) {
