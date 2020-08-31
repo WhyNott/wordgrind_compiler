@@ -2,7 +2,90 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <assert.h>
 #include "parser.h"
+#define STB_DS_IMPLEMENTATION
+#include "stb_ds.h"
+
+//indexed string datatype
+typedef unsigned int String;
+
+struct { char *key; String value; } *string_to_index_table = NULL;
+
+char** index_to_string_table = NULL;
+
+void init_indexed_string_tables(){
+  arrput(index_to_string_table, NULL);//actual values start from 1..
+  shdefault(string_to_index_table, 0);//..because 0 means value not found
+}
+
+String insert_string(char * ch){
+  String present_value = shget(string_to_index_table, ch);
+  if (!present_value) {
+    arrput(index_to_string_table, ch);
+    String value = arrlen(index_to_string_table)-1;
+    shput(string_to_index_table, ch, value);
+    return value;
+  }
+  else return present_value;
+}
+
+String char_to_index(char * ch){
+  String returnval = shget(string_to_index_table, ch);
+  assert(returnval);
+  return returnval;
+
+}
+
+
+char* index_to_char(String index){
+  assert(index);
+  assert(arrlen(index_to_string_table) > index);
+  return index_to_string_table[index];
+}
+
+
+void test_indexed_strings(){
+
+  init_indexed_string_tables();
+
+  String a = insert_string("jamie dawson was the captain");
+  String b = insert_string("of the christian and her crew");
+  String c = insert_string("and he flew and fought the christian");
+  String d = insert_string("in the war of '82");
+
+
+  char * ch_a = index_to_char(a); 
+  char * ch_b = index_to_char(b); 
+  char * ch_c = index_to_char(c); 
+  char * ch_d = index_to_char(d);
+
+  String a_2  = char_to_index(ch_a);
+  String b_2  = char_to_index(ch_b);
+  String c_2  = char_to_index(ch_c);
+  String d_2  = char_to_index(ch_d);
+
+  assert(a == a_2); 
+  assert(b == b_2); 
+  assert(c == c_2); 
+  assert(d == d_2); 
+
+  
+  String a_3  = char_to_index("jamie dawson was the captain");        
+  String b_3  = char_to_index("of the christian and her crew");       
+  String c_3  = char_to_index("and he flew and fought the christian");
+  String d_3  = char_to_index("in the war of '82");                   
+
+  assert(a == a_3); 
+  assert(b == b_3); 
+  assert(c == c_3); 
+  assert(d == d_3);
+
+  printf("Indexed string test completed!\n");
+
+  
+}
+
 
 
 typedef enum {
@@ -33,6 +116,7 @@ typedef enum {
               K_CURLY_RIGHT
 
 } KeywordType;
+
 
 
 
@@ -212,7 +296,7 @@ void clause_print(Clause * cl) {
 
 //globals
 char * file;
-Token ** tokens;
+Token ** tokens = NULL;
 
 unsigned long oracle_current = 0;
 int * oracle_base = NULL;
@@ -243,7 +327,7 @@ void globals_free(){
    free(file);
    free(arena_base);
    free(oracle_base);
-   free(tokens);
+   arrfree(tokens);
 }
 
 
@@ -265,12 +349,14 @@ bool is_break_token(char ch){
     ch == ')';
 }
 
-void tokenize(char* filename, char * file, long fsize, Token*** tokens, int * tokens_size){
+void tokenize(char* filename, char * file, long fsize, Token*** tokens){
   char * buffer = arena_base + arena_current;
 
-  *tokens = malloc(sizeof(Token*) * 10);
-  *tokens_size = 0;
-  int tokens_capacity = 10;
+  
+  arrsetcap(tokens, 10);
+
+  
+  
 
   int line_counter = 1;
   int column_counter = 0;
@@ -283,6 +369,7 @@ void tokenize(char* filename, char * file, long fsize, Token*** tokens, int * to
   int comment_level = 0;
 
 for (int i = 0; i < fsize+1; i++) {
+  
   char current_char = file[i];
 
   if (current_char == '(' && file[i+1] == '*'){
@@ -384,13 +471,10 @@ for (int i = 0; i < fsize+1; i++) {
                                                                         
                                                                         
       }                                                                   
-      buffer = arena_base + arena_current;                                
-      if (*tokens_size >= tokens_capacity){                                
-        tokens_capacity *= 2;                                             
-        *tokens = realloc(*tokens, tokens_capacity * sizeof(Token*));       
-      }                                                                   
-      (*tokens)[*tokens_size] = token;                                        
-      (*tokens_size)++;                                                      
+      buffer = arena_base + arena_current;
+      arrput(*tokens, token); 
+
+
       token_context = NULL;                                               
 
 
@@ -425,12 +509,8 @@ for (int i = 0; i < fsize+1; i++) {
 }
 
 
-#include <assert.h>
-
-
-
-void sentence_parse(Sentence * output, Token** tokens, const int tokens_size, int * tokens_counter,
-                          int * oracle, const int oracle_size, int * oracle_counter, int * varset){
+void sentence_parse(Sentence * output, Token** tokens, int * tokens_counter,
+                          int * oracle,  int * oracle_counter, int * varset){
   (*oracle_counter)++;
   const int name_size = oracle[*oracle_counter];
   
@@ -448,6 +528,7 @@ void sentence_parse(Sentence * output, Token** tokens, const int tokens_size, in
   (*tokens_counter)++;
   while (!(tokens[*tokens_counter]->token_type == T_KEYWORD &&
            ((Keyword *)tokens[*tokens_counter])->keyword == K_ANGLE_RIGHT)){
+
     
     assert(name_counter < name_size+1);
     
@@ -523,8 +604,10 @@ void sentence_parse(Sentence * output, Token** tokens, const int tokens_size, in
       strcpy(name+name_counter, "{}");
       name_counter += 2;
       
-      sentence_parse(elements + elements_counter, tokens, tokens_size, tokens_counter,
-                     oracle, oracle_size, oracle_counter, varset);
+      sentence_parse(elements + elements_counter, tokens, tokens_counter,
+                     oracle,  oracle_counter, varset);
+      
+      
       elements_counter++;
     }
     
@@ -541,8 +624,8 @@ void sentence_parse(Sentence * output, Token** tokens, const int tokens_size, in
 }
 
 
-void sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
-                       int * oracle, const int oracle_size, int * oracle_counter){
+void sentence_oracle(Token** tokens, int * tokens_counter,
+                       int * oracle, int * oracle_counter){
 
   assert(tokens[*tokens_counter]->token_type == T_KEYWORD && ((Keyword *)tokens[*tokens_counter])->keyword == K_ANGLE_LEFT);
   (*tokens_counter)++;
@@ -556,7 +639,7 @@ void sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter
 
   Token * firsttoken = tokens[*tokens_counter];
 
-  for (int * i = tokens_counter; *i < tokens_size; (*i)++) {
+  for (int * i = tokens_counter; *i < arrlen(tokens); (*i)++) {
     Token * token = tokens[*i];
 
     if (token->token_type == T_WORD) {
@@ -596,10 +679,12 @@ void sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter
       *name_counter += 2;
       (*item_counter)++;
 
-      sentence_oracle(tokens, tokens_size, tokens_counter,
-		oracle, oracle_size, oracle_counter);
+      sentence_oracle(tokens,  tokens_counter,
+		oracle,  oracle_counter);
+      
       continue;
     }
+    
 
     if (token->token_type == T_KEYWORD && ((Keyword *)token)->keyword == K_ANGLE_RIGHT) {
       *name_counter += strlen(token->context.leading_whitespace);
@@ -615,8 +700,8 @@ void sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter
 }
 
 
-void logic_verb_parse(LogicVerb * output, Token** tokens, const int tokens_size, int * tokens_counter,
-                          int * oracle, const int oracle_size, int * oracle_counter, int * varset){
+void logic_verb_parse(LogicVerb * output, Token** tokens,  int * tokens_counter,
+                          int * oracle,  int * oracle_counter, int * varset){
 
   
   (*oracle_counter)++;
@@ -628,8 +713,8 @@ void logic_verb_parse(LogicVerb * output, Token** tokens, const int tokens_size,
   
     
     Sentence * sent = arenalloc(sizeof(Sentence));
-    sentence_parse(sent, tokens, tokens_size, tokens_counter,
-                   oracle, oracle_size, oracle_counter, varset);
+    sentence_parse(sent, tokens,  tokens_counter,
+                   oracle,  oracle_counter, varset);
     
     output->type = L_SENTENCE;
     output->contents.basic = sent;
@@ -647,8 +732,10 @@ void logic_verb_parse(LogicVerb * output, Token** tokens, const int tokens_size,
     (*tokens_counter)++;
     for (int i = 0; i < contents_length; i++) {
  
-      logic_verb_parse(contents+i, tokens, tokens_size, tokens_counter,
-                   oracle, oracle_size, oracle_counter, varset);
+      logic_verb_parse(contents+i, tokens,  tokens_counter,
+                   oracle,  oracle_counter, varset);
+
+      
       (*tokens_counter)++;
       if (i != (contents_length-1))
         (*tokens_counter)++;
@@ -674,8 +761,8 @@ void logic_verb_parse(LogicVerb * output, Token** tokens, const int tokens_size,
     LogicVerb * contents = arenalloc(sizeof(LogicVerb) * contents_length);
     (*tokens_counter)++;
     for (int i = 0; i < contents_length; i++) {
-      logic_verb_parse(contents+i, tokens, tokens_size, tokens_counter,
-                   oracle, oracle_size, oracle_counter, varset);
+      logic_verb_parse(contents+i, tokens,  tokens_counter,
+                   oracle,  oracle_counter, varset);
       (*tokens_counter)++;
       if (i != (contents_length-1))
         (*tokens_counter)++;
@@ -697,8 +784,8 @@ void logic_verb_parse(LogicVerb * output, Token** tokens, const int tokens_size,
 
 }
 
-void logic_verb_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
-                       int * oracle, const int oracle_size, int * oracle_counter){
+void logic_verb_oracle(Token** tokens,  int * tokens_counter,
+                       int * oracle, int * oracle_counter){
 
     
   (*oracle_counter)++;
@@ -715,16 +802,16 @@ void logic_verb_oracle(Token** tokens, const int tokens_size, int * tokens_count
   if (firsttoken->keyword == K_ANGLE_LEFT){
     
     *type_indicator = 1;
-    sentence_oracle(tokens, tokens_size, tokens_counter,
-		oracle, oracle_size, oracle_counter);
+    sentence_oracle(tokens,  tokens_counter,
+		oracle,  oracle_counter);
     return;
   } else if (firsttoken->keyword == K_CURLY_LEFT){
     (*oracle_counter)++;
     int * item_counter = oracle + (*oracle_counter);
     *item_counter = 1;
     (*tokens_counter)++;
-    logic_verb_oracle(tokens, tokens_size, tokens_counter,
-		oracle, oracle_size, oracle_counter);
+    logic_verb_oracle(tokens,  tokens_counter,
+		oracle,  oracle_counter);
     (*tokens_counter)++;
     while (!(tokens[*tokens_counter]->token_type == T_KEYWORD &&
              ((Keyword *)tokens[*tokens_counter])->keyword == K_CURLY_RIGHT)){
@@ -757,10 +844,12 @@ void logic_verb_oracle(Token** tokens, const int tokens_size, int * tokens_count
         }
         
         (*tokens_counter)++;
-        logic_verb_oracle(tokens, tokens_size, tokens_counter,
-		oracle, oracle_size, oracle_counter);
+        logic_verb_oracle(tokens,  tokens_counter,
+		oracle,  oracle_counter);
         (*tokens_counter)++;
         (*item_counter)++;
+
+
         
       }
 
@@ -775,23 +864,24 @@ void logic_verb_oracle(Token** tokens, const int tokens_size, int * tokens_count
 
 
 
-void clause_parse(Clause * output, Token** tokens, const int tokens_size, int * tokens_counter,
-                          int * oracle, const int oracle_size, int * oracle_counter, int * varset){
+void clause_parse(Clause * output, Token** tokens,  int * tokens_counter,
+                          int * oracle, int * oracle_counter, int * varset){
   (*oracle_counter)++;
   int kind = oracle[*oracle_counter];
   Sentence * head = arenalloc(sizeof(Sentence));
-  sentence_parse(head, tokens, tokens_size, tokens_counter,
-                   oracle, oracle_size, oracle_counter, varset);
+  sentence_parse(head, tokens,  tokens_counter,
+                 oracle, oracle_counter,  varset);
+  
   LogicVerb * body = NULL;
-  
-  
+
+ 
   switch (kind){
   case 1:{
     (*tokens_counter)++;
     (*tokens_counter)++;
     body = arenalloc(sizeof(LogicVerb));
-    logic_verb_parse(body, tokens, tokens_size, tokens_counter,
-                   oracle, oracle_size, oracle_counter, varset);
+    logic_verb_parse(body, tokens,  tokens_counter,
+                   oracle,  oracle_counter, varset);
     
   }
     break;
@@ -809,21 +899,23 @@ void clause_parse(Clause * output, Token** tokens, const int tokens_size, int * 
 }
 
 
-void clause_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
-                       int * oracle, const int oracle_size, int * oracle_counter){
+void clause_oracle(Token** tokens,  int * tokens_counter,
+                       int * oracle, int * oracle_counter){
   (*oracle_counter)++;
   
   int * kind = oracle_base + (*oracle_counter);
-  sentence_oracle(tokens, tokens_size, tokens_counter,
-		oracle, oracle_size, oracle_counter);
+  sentence_oracle(tokens,  tokens_counter,
+		oracle,  oracle_counter);
   (*tokens_counter)++;
   if (tokens[*tokens_counter]->token_type == T_KEYWORD &&
       ((Keyword *)tokens[*tokens_counter])->keyword == K_IF){
     *kind = 1;
     (*tokens_counter)++;
-    logic_verb_oracle(tokens, tokens_size, tokens_counter,
-		oracle, oracle_size, oracle_counter);
+    logic_verb_oracle(tokens,  tokens_counter,
+		oracle,  oracle_counter);
   } else
+
+    
     {
       (*tokens_counter)--;
       *kind = 2;
@@ -854,10 +946,10 @@ void consult_file(const char * filename, int * tokens_size){
   char * new_filename = arenalloc(sizeof(char)* (strlen(filename)+1));
   strcpy(new_filename, filename);
   
-  tokenize(new_filename, file, fsize, &tokens, tokens_size);
+  tokenize(new_filename, file, fsize, &tokens);
   
   
-  for (int i = 0; i < (*tokens_size); i++) {
+  for (int i = 0; i < arrlen(tokens); i++) {
     token_print(tokens[i]); //token_print_whitespace(tokens[i]);
     printf("\n");
   }
@@ -870,9 +962,9 @@ void consult_file(const char * filename, int * tokens_size){
     int tokens_counter = 0;
     int oracle_counter = 0;
     
-    while (tokens_counter < *tokens_size){
-      clause_oracle(tokens, *tokens_size, &tokens_counter,
-                    oracle_base, oracle_current, &oracle_counter);
+    while (tokens_counter < arrlen(tokens)){
+      clause_oracle(tokens, &tokens_counter,
+                    oracle_base,  &oracle_counter);
       tokens_counter++;
     }
     
@@ -884,7 +976,13 @@ void consult_file(const char * filename, int * tokens_size){
   }
   
 
+  
+  *tokens_size = arrlen(tokens);
+  
+  
+
 }
+
 
 
 //int main(int argc, char **argv){
@@ -899,7 +997,7 @@ void consult_file(const char * filename, int * tokens_size){
 //   int oracle_counter = 0;
 //   int varset = 0;
 //   while (tokens_counter < tokens_size){
-//     clause_parse(&cl, tokens, tokens_size, &tokens_counter,
+//     clause_parse(&cl, tokens,  &tokens_counter,
 //                  oracle_base, oracle_current, &oracle_counter, &varset);
 //     clause_print(&cl);
 //     printf("\n");

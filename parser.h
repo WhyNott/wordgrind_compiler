@@ -1,4 +1,5 @@
-
+#ifndef PARSER_HEADER
+#define PARSER_HEADER
 
 typedef struct {
   char * leading_whitespace;
@@ -64,17 +65,18 @@ typedef struct token Token;
 
 void consult_file(const char * filename, int * tokens_size);
 
-void clause_parse(Clause * output, Token** tokens, const int tokens_size, int * tokens_counter,
-             int * oracle, const int oracle_size, int * oracle_counter, int * varset);
+void clause_parse(Clause * output, Token** tokens,  int * tokens_counter,
+             int * oracle,  int * oracle_counter, int * varset);
 
 void clause_print(Clause * cl);
 
 void globals_free();
 
-Clause NULL_CLAUSE = {0, 0, 0};//this is embarassingly hard to do in rust
+void test_indexed_strings();
 
-
-char * file;
-char * arena_base;
-int * oracle_base;
+extern char * file;
+extern char * arena_base;
+extern int * oracle_base;
 Token ** tokens;
+
+#endif
