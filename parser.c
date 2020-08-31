@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
+
 #include <string.h>
 #include <assert.h>
 #include "parser.h"
@@ -8,16 +8,20 @@
 #include "stb_ds.h"
 
 //indexed string datatype
-typedef unsigned int String;
+
 
 struct { char *key; String value; } *string_to_index_table = NULL;
 
 char** index_to_string_table = NULL;
 
 void init_indexed_string_tables(){
+  string_to_index_table = NULL;
+  index_to_string_table = NULL;
+  
   arrput(index_to_string_table, NULL);//actual values start from 1..
   shdefault(string_to_index_table, 0);//..because 0 means value not found
 }
+
 
 String insert_string(char * ch){
   String present_value = shget(string_to_index_table, ch);
@@ -86,7 +90,9 @@ void test_indexed_strings(){
   
 }
 
-
+//The thing that is left to do, that is actually semi-difficult
+//Is to replace all the char* fields in the token structs with String
+//And to have the tokenizer insert the strings the right way
 
 typedef enum {
               T_KEYWORD,
@@ -136,19 +142,19 @@ typedef struct {
   TokenType token_type;
   Context context;
   int number;
-  char * number_representation;
+  String number_representation;
 } Number;
 
 typedef struct {
   TokenType token_type;
   Context context;
-  char * variable;
+  String variable;
 } Variable;
 
 typedef struct {
   TokenType token_type;
   Context context;
-  char * word;
+  String word;
 } Word;
 
 
@@ -206,19 +212,19 @@ void token_print(const Token* token){
 
   case T_NUMBER: {
     Number * n = (Number *) token;
-    printf("<Number %s %i:%i>", n->number_representation,
+    printf("<Number %s %i:%i>", index_to_char(n->number_representation),
            n->context.line_number, n->context.column_number);
   }
     break;
   case T_VARIABLE: {
     Variable * v = (Variable *) token;
-    printf("<Variable %s %i:%i>", v->variable,
+    printf("<Variable %s %i:%i>", index_to_char(v->variable),
            v->context.line_number, v->context.column_number);
   }
     break;
   case T_WORD: {
     Word * w = (Word *) token;
-    printf("<Word %s %i:%i>", w->word,
+    printf("<Word %s %i:%i>", index_to_char(w->word),
            w->context.line_number, w->context.column_number);
   }
     break;
@@ -242,12 +248,12 @@ KeywordType verb_type_to_keyword_type(VerbType vt){
 }
 
 void sentence_print (Sentence * sentence){
-  if (sentence->name == NULL){
+  if (sentence->elements == NULL){
     VariableSentence * var = (VariableSentence *) sentence;
-    printf("?%s(%i)", var->variable_name, var->variable_id);
+    printf("%s(%i)", index_to_char(var->variable_name), var->variable_id);
   } else {
     
-    printf("%s(", sentence->name);
+    printf("%s(", index_to_char(sentence->name));
     for (int i = 0; i < sentence->elements_length; i++){
       sentence_print(sentence->elements+i);
       if (i != (sentence->elements_length)-1)
@@ -351,12 +357,8 @@ bool is_break_token(char ch){
 
 void tokenize(char* filename, char * file, long fsize, Token*** tokens){
   char * buffer = arena_base + arena_current;
-
-  
+ 
   arrsetcap(tokens, 10);
-
-  
-  
 
   int line_counter = 1;
   int column_counter = 0;
@@ -438,21 +440,22 @@ for (int i = 0; i < fsize+1; i++) {
 
       Token * token = NULL;                                               
       int parsed_int;                                                     
-      KeywordType kwt;                                                    
+      KeywordType kwt;
+      String token_string = insert_string(buffer);
                                                                         
       if (buffer[0] == '?'){                                              
         Variable * var = arenalloc(sizeof(Variable));                     
         var->token_type = T_VARIABLE;                                     
         var->context = *token_context;                                    
-        var->variable = buffer + 1;                                       
-        token = (Token*) var;                                                      
+        var->variable = token_string; //note: that includes '?' as well          
+        token = (Token*) var;                                                       
                                                                         
       } else if ( (parsed_int = atoi(buffer)) || buffer[0] == '0'){       
         Number * num = arenalloc(sizeof(Number));                         
         num->token_type = T_NUMBER;                                       
         num->context = *token_context;                                    
         num->number = parsed_int;                                         
-        num->number_representation = buffer;
+        num->number_representation = token_string;
         token = (Token*) num;                                                      
                                                                         
       } else if ((kwt = keyword_lookup(buffer)) != -1){                   
@@ -466,9 +469,10 @@ for (int i = 0; i < fsize+1; i++) {
         Word * word = arenalloc(sizeof(Word));                            
         word->token_type = T_WORD;                                        
         word->context = *token_context;                                   
-        word->word = buffer;                                              
+        word->word = token_string;                                              
         token = (Token*) word;                                                     
-                                                                        
+
+        
                                                                         
       }                                                                   
       buffer = arena_base + arena_current;
@@ -540,12 +544,14 @@ void sentence_parse(Sentence * output, Token** tokens, int * tokens_counter,
       
       strcpy(name+name_counter, word->context.leading_whitespace);
       name_counter += amount;
+
       
    
-      amount = strlen(word->word);
+      amount = strlen(index_to_char(word->word));
  
-      strcpy(name+name_counter, word->word);
+      strcpy(name+name_counter, index_to_char(word->word));
       name_counter += amount;
+
       
       
     } else if (tokens[*tokens_counter]->token_type == T_NUMBER){
@@ -555,9 +561,11 @@ void sentence_parse(Sentence * output, Token** tokens, int * tokens_counter,
       strcpy(name+name_counter, number->context.leading_whitespace);
       name_counter += amount;
 
-      amount = strlen(number->number_representation);
-      strcpy(name+name_counter, number->number_representation);
+      amount = strlen(index_to_char(number->number_representation));
+      strcpy(name+name_counter, index_to_char(number->number_representation));
       name_counter += amount;
+
+      
    
       
     } else if (tokens[*tokens_counter]->token_type == T_KEYWORD  &&
@@ -615,12 +623,12 @@ void sentence_parse(Sentence * output, Token** tokens, int * tokens_counter,
   }
 
   
-  output->name = name;
+  output->name = insert_string(name);
   output->context = &opening_bracket->context;
   output->elements = elements;
   output->elements_length = elements_size;
 
- 
+
 }
 
 
@@ -645,14 +653,14 @@ void sentence_oracle(Token** tokens, int * tokens_counter,
     if (token->token_type == T_WORD) {
       Word * word = (Word *) token;
       *name_counter += strlen(word->context.leading_whitespace);
-      *name_counter += strlen(word->word);
+      *name_counter += strlen(index_to_char(word->word));
       continue;
     }
 
     if (token->token_type == T_NUMBER) {
       Number * num = (Number *) token;
       *name_counter += strlen(num->context.leading_whitespace);
-      *name_counter += strlen(num->number_representation);
+      *name_counter += strlen(index_to_char(num->number_representation));
       continue;
     }
 

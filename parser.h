@@ -1,6 +1,14 @@
 #ifndef PARSER_HEADER
 #define PARSER_HEADER
 
+
+typedef unsigned int String;
+
+void init_indexed_string_tables();
+String insert_string(char * ch);
+String char_to_index(char * ch);
+char* index_to_char(String index);
+
 typedef struct {
   char * leading_whitespace;
   int line_number;
@@ -12,15 +20,15 @@ typedef struct sentence Sentence;
 
 
 typedef struct sentence {
-  char * name;
+  String name;
   Sentence * elements;
   int elements_length;
   Context * context;
 } Sentence;
 
 typedef struct {
-  void * is_not_variable; //NULL if it is a variable
-  char * variable_name; 
+  String  variable_name; 
+  void * is_not_variable; 
   int variable_id;
   Context * context;
 } VariableSentence;
