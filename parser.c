@@ -817,7 +817,9 @@ void clause_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
   sentence_oracle(tokens, tokens_size, tokens_counter,
 		oracle, oracle_size, oracle_counter);
   (*tokens_counter)++;
-  if (tokens[*tokens_counter]->token_type == T_KEYWORD &&
+  
+  if (*tokens_counter < tokens_size &&
+      tokens[*tokens_counter]->token_type == T_KEYWORD &&
       ((Keyword *)tokens[*tokens_counter])->keyword == K_IF){
     *kind = 1;
     (*tokens_counter)++;
@@ -830,10 +832,19 @@ void clause_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
     }
   
 }
+#include <errno.h>
 
 long load_file(const char * filename){
+  
    FILE *f = fopen(filename, "rb");
+   if (f == NULL){
+     printf("An error loading file %s!\n", filename);
+     printf("%s\n", strerror(errno));
+     exit(1);
+   }
+   
   fseek(f, 0, SEEK_END);
+  
   long fsize = ftell(f);
   fseek(f, 0, SEEK_SET);  /* same as rewind(f); */
   file = malloc(fsize + 1);
@@ -847,12 +858,15 @@ long load_file(const char * filename){
 }
 
 void consult_file(const char * filename, int * tokens_size){
+  
   long fsize = load_file(filename);
- 
+  
+  
   arena_capacity = (fsize + 200) * sizeof(char) * 640;
   arena_base = malloc(arena_capacity);
   char * new_filename = arenalloc(sizeof(char)* (strlen(filename)+1));
   strcpy(new_filename, filename);
+
   
   tokenize(new_filename, file, fsize, &tokens, tokens_size);
   
@@ -869,6 +883,7 @@ void consult_file(const char * filename, int * tokens_size){
   {
     int tokens_counter = 0;
     int oracle_counter = 0;
+
     
     while (tokens_counter < *tokens_size){
       clause_oracle(tokens, *tokens_size, &tokens_counter,

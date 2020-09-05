@@ -49,55 +49,70 @@ pub fn rustify_context(context: *const parser_c::Context) -> Context{
     Context {leading_whitespace, line_number, column_number, file_name}
 
 }
-
+use std::fmt;
 #[derive(Debug, Clone)]
-pub enum Sentence {
-    Sentence {
+pub struct Sentence {
         name: String,
-        elements: Vec<Sentence>,
+        elements: Vec<Term>,
         context:  Box::<Context>
-    },
+}
+
+impl fmt::Display for Sentence {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        
+        write!(f, "'{}'(", self.name)?;
+        for (i, element) in self.elements.iter().enumerate() {
+            write!(f, "{}", element)?;
+            if i != (self.elements.len()-1){
+                write!(f, ", ")?;
+            }
+        }
+        write!(f, ")")
+            
+    }
+}
+
     
-    Variable {
+#[derive(Debug, Clone)]    
+pub struct Variable {
         variable_name: String,
         variable_id: i32,
         context: Box::<Context>       
+}
+
+impl fmt::Display for Variable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "?{}<{}>", self.variable_name, self.variable_id)
     }
 }
 
-use std::fmt;
-impl fmt::Display for Sentence {
+
+#[derive(Debug, Clone)]
+pub enum Term {
+    Sentence(Sentence),
+    Variable(Variable)
+}
+
+
+
+impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Sentence::Sentence {name, elements, context:_} => {
-
-                write!(f, "'{}'(", name)?;
-                for (i, element) in elements.iter().enumerate() {
-                    write!(f, "{}", element)?;
-                    if i != (elements.len()-1){
-                        write!(f, ", ")?;
-                    }
-                }
-                write!(f, ")")
-                    
+            Term::Sentence(s) => {
+                write!(f, "{}", s)
             },
             
-            Sentence::Variable {variable_name, variable_id, context:_} => {
-
-                write!(f, "?{}<{}>", variable_name, variable_id)
-
+            
+            Term::Variable(v) => {
+                write!(f, "{}", v)
             }
             
-
         }
-        
     }
-
-
 }
 use std::collections::BTreeMap;
 
-pub fn rustify_sentence(sentence: *const parser_c::Sentence, varset: &mut BTreeMap<String, i32>) -> Sentence{
+pub fn rustify_sentence(sentence: *const parser_c::Sentence, varset: &mut BTreeMap<String, i32>) -> Term{
     
     if unsafe { (*sentence).name.is_null() } {
         let variable;
@@ -127,7 +142,7 @@ pub fn rustify_sentence(sentence: *const parser_c::Sentence, varset: &mut BTreeM
 
        
         //println!("{}", variable_id);
-        Sentence::Variable {variable_name, variable_id, context}
+        Term::Variable(Variable {variable_name, variable_id, context})
 
       
     } else {
@@ -144,12 +159,13 @@ pub fn rustify_sentence(sentence: *const parser_c::Sentence, varset: &mut BTreeM
             }
             let context = Box::new(rustify_context((*sentence).context));
 
-            Sentence::Sentence {name, elements: elements_new,  context}
+            Term::Sentence(Sentence {name, elements: elements_new,  context})
+               
 
         }
          
           
-        }
+    }
         
     
 
@@ -167,7 +183,7 @@ impl fmt::Display for LogicVerb {
         match self {
             LogicVerb::Sentence(s) => write!(f, "{}", s),
             LogicVerb::And(verbs) => {
-                write!(f, "and(\n")?;
+                writeln!(f, "and(")?;
 
                 for (i, sentence) in verbs.iter().enumerate() {
                     write!(f, "          {}", sentence)?;
@@ -213,7 +229,12 @@ pub fn rustify_logic_verb(lverb: *const parser_c::LogicVerb, varset: &mut BTreeM
         
         match (*lverb).type_ {
             parser_c::VerbType_L_SENTENCE => {
-                LogicVerb::Sentence(rustify_sentence((*lverb).contents.basic, varset))
+                LogicVerb::Sentence(match rustify_sentence((*lverb).contents.basic, varset){
+                    Term::Sentence(s) => s,
+                    Term::Variable(v) => panic!("Clause head is variable: {:?}", v)
+
+
+                })
             },
             parser_c::VerbType_L_AND => {
                 
@@ -237,7 +258,6 @@ pub struct Clause {
     pub head: Sentence,
     pub body: Option<LogicVerb>,
     pub context: Box::<Context>
-
 }
 
 impl fmt::Display for Clause {
@@ -260,7 +280,10 @@ pub fn rustify_clause(cl: *const parser_c::Clause, varset: &mut BTreeMap<String,
     
     unsafe {
         Clause {
-            head: rustify_sentence((*cl).head, varset),
+            head: match rustify_sentence((*cl).head, varset){
+                Term::Sentence(s) => s,
+                Term::Variable(v) => panic!("Clause head is variable: {:?}", v)
+            },
             body: if (*cl).body.is_null() {
                 None
             } else {
@@ -270,7 +293,6 @@ pub fn rustify_clause(cl: *const parser_c::Clause, varset: &mut BTreeMap<String,
         }
     }
 }
-
 
 
 
@@ -294,6 +316,170 @@ pub fn parse_clause(tokens_counter : &mut i32, tokens_size : &i32, oracle_counte
         rustify_clause(&clause, &mut BTreeMap::new())
         
 }
+
+
+pub fn consult_file(filename:&str) -> BTreeMap<(String, i32), (Clause, i32)>{
+    
+    let mut tokens_size = 0;
+    tokenize_file(filename, &mut tokens_size);
+    let mut tokens_counter = 0;
+    let mut oracle_counter = 0;
+    
+    let mut map  : BTreeMap<(String, i32), Vec<(Clause, i32)>> = BTreeMap::new();
+
+    
+    while tokens_counter < tokens_size {
+        let mut varset = 0;
+        
+        let clause = parse_clause(&mut tokens_counter, &tokens_size, &mut  oracle_counter, &mut varset);
+        
+        tokens_counter += 1;
+        let arity = clause.head.elements.len() as i32;
+        let cl_name = clause.head.name.clone();
+        
+       
+
+        let key = (cl_name, arity);
+        if map.contains_key(&key){
+            map.get_mut(&key).expect("404: not found").push((clause, varset));
+            
+        } else {
+            map.insert(key, vec![(clause, varset)]);
+        }
+
+        
+        
+    }
+
+    
+    
+    clean_up_memory();
+    transform_map(&map)
+
+  
+}
+//adjust the variable names so that you can tell what this function is supposed to do
+fn transform_map(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMap<(String, i32), (Clause, i32)> {
+    let mut new_map : BTreeMap<(String, i32), (Clause, i32)> = BTreeMap::new();
+    for (key, value) in input.iter(){
+        if value.len() == 1 {
+            new_map.insert(key.clone(), value[0].clone());
+        } else {
+            let (name, arity) = key;
+            let mut highest = 0;
+            for (_, num) in value {
+                if highest < *num {
+                    highest = *num;
+                }
+            }
+            let mut new_arguments = Vec::with_capacity(*arity as usize);
+
+            let context = value[0].0.context.clone();
+            
+            for _ in 0..*arity {
+                highest += 1;
+                new_arguments.push(
+                    Term::Variable(Variable {
+                        variable_name: highest.to_string(),
+                        variable_id: highest,
+                        context: context.clone()
+  
+                    }));
+                
+            }
+            let new_head = Sentence {
+                name: name.to_string(),
+                elements: new_arguments.clone(),
+                context: context.clone()
+                            
+            };
+            let mut new_clauses:Vec<LogicVerb> = Vec::with_capacity(value.len() as usize);
+
+            for (clause, _) in value{
+                //produce sentences
+                let mut sentences = Vec::with_capacity(*arity as usize);
+   
+                for (arg, new_arg) in clause.head.elements.iter().zip(new_arguments.iter()) {
+                    sentences.push(LogicVerb::Sentence(
+                        Sentence {
+                            name: "{} = {}".to_string(),
+                            elements: vec![arg.clone(), new_arg.clone()],
+                            context: match arg {
+                                Term::Sentence(Sentence {context, ..}) => context.clone(),
+                                Term::Variable(Variable {context, ..}) => context.clone(),
+                            }
+                        }
+                    ));
+
+                    
+                        
+                }
+                
+            
+                match &clause.body {
+                    Some(lv) => {
+                        match lv {
+                            LogicVerb::Sentence(s) => {
+                                sentences.push(LogicVerb::Sentence(s.clone()));
+                                new_clauses.push(LogicVerb::And(sentences));                     
+                            },
+                            LogicVerb::And(and) => {
+                                sentences.append(&mut and.clone());
+                                
+                                new_clauses.push(LogicVerb::And(sentences));
+                                
+                            },
+                            LogicVerb::Or(or) => {
+                                sentences.push(LogicVerb::Or(or.clone()));
+                                new_clauses.push(LogicVerb::And(sentences));                     
+                            },
+
+                           
+
+                        }
+
+                        
+                    },
+                    None => {
+                        if !sentences.is_empty() { //some weird edge case I guess?
+                            new_clauses.push(if sentences.len() == 1 {
+                                sentences.into_iter().next().expect("Sentence is empty")
+                            } else {
+                                LogicVerb::And(sentences)
+                            });
+                            
+                        } else {
+                            panic!("I think this should be a compiler error but I don't remember why");
+                            
+                        }
+                        
+                    }
+
+        
+                }
+
+               
+            }
+            
+            new_map.insert(key.clone(), (
+                Clause {
+                    head: new_head,
+                    body: Some(if new_clauses.len() == 1 {
+                        new_clauses.into_iter().next().expect("new_clauses is empty")
+
+                            
+                    } else {
+                        LogicVerb::Or(new_clauses)
+                    }),
+                    context
+                }, highest));
+
+        }
+    }
+    new_map
+}
+
+
 
 
 pub fn clean_up_memory(){
