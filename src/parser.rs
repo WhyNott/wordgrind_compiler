@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 
 mod parser_c {
     #![allow(non_upper_case_globals)]
@@ -52,9 +54,9 @@ pub fn rustify_context(context: *const parser_c::Context) -> Context{
 use std::fmt;
 #[derive(Debug, Clone)]
 pub struct Sentence {
-        name: String,
-        elements: Vec<Term>,
-        context:  Box::<Context>
+        pub name: String,
+        pub elements: Vec<Term>,
+        pub context:  Box::<Context>
 }
 
 impl fmt::Display for Sentence {
@@ -75,9 +77,9 @@ impl fmt::Display for Sentence {
     
 #[derive(Debug, Clone)]    
 pub struct Variable {
-        variable_name: String,
-        variable_id: i32,
-        context: Box::<Context>       
+        pub variable_name: String,
+        pub variable_id: i32,
+        pub context: Box::<Context>       
 }
 
 impl fmt::Display for Variable {
@@ -205,11 +207,7 @@ impl fmt::Display for LogicVerb {
               
             }
                 write!(f, ")")
-            }
-           
-           
-           
-               
+            }   
         }
     }
 }
@@ -358,7 +356,8 @@ pub fn consult_file(filename:&str) -> BTreeMap<(String, i32), (Clause, i32)>{
 
   
 }
-//adjust the variable names so that you can tell what this function is supposed to do
+//TODO: adjust the variable names so that you can tell what this function is supposed to do
+//also: "aggregate_clauses" would have been a much better name for this IMO
 fn transform_map(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMap<(String, i32), (Clause, i32)> {
     let mut new_map : BTreeMap<(String, i32), (Clause, i32)> = BTreeMap::new();
     for (key, value) in input.iter(){

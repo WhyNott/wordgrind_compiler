@@ -1,0 +1,132 @@
+(* hi, this is a comment! *)
+
+<ackermann(<0>, ?N) = <successor of ?N>>
+
+<ackermann(<successor of ?M>, <0>) = ?Val> if 
+    <ackermann(?M, <successor of <0>>) = ?Val>
+
+(* I'm impressed how easy comments were to implement - compared to writing a custom tokenizer in prolog... *)
+
+(* a (* miliion (* nested (*comments *) one *) inside *) another*)
+(* a (* miliion (* nested (*comments *) one *) inside *) another*)
+
+
+<ackermann(<successor of ?M>, <successor of ?N>) = ?Val> if {
+    <ackermann(<successor of ?M>, ?N) = ?Val1> and
+    <ackermann(?M, ?Val1) = ?Val>
+}
+
+(* a (* miliion (* nested (*comments *) one *) inside *) another*)
+(* a (* miliion (* nested (*comments *) one *) inside *) another*)
+
+
+<<bond street> is connected to <oxford circus> by <central> line> 
+<<oxford_circus> is connected to <tottenham court road> by <central> line>
+<<bond street> is connected to <green park> by <jubilee> line>
+<<green park> is connected to <charing cross> by <jubilee> line>
+<<green park> is connected to <piccadilly circus> by <piccadilly> line>
+<<picadilly circus> is connected to <leicester square> by <piccadilly> line>
+<<green park> is connected to <oxford circus> by <victoria> line>
+<<oxford circus> is connected to <picadilly circus> by <bakerloo> line>
+<<piccadilly circus> is connected to <charing cross> by <bakerloo> line>
+<<tottenham court> is connected to <leicester square> by <northern> line>
+<<leicester square> is connected to <charing cross> by <northern> line>
+
+
+<?X is a polynomial in ?X>
+<?Term is a polynomial in ?X> if
+       <?Term is constant>
+<<?Term1 + ?Term2> is a polynomial in ?X> if {
+         <?Term1 is a polynomial in ?X> and
+         <?Term2 is a polynomial in ?X> 
+}
+<<?Term1 - ?Term2> is a polynomial in ?X> if {
+         <?Term1 is a polynomial in ?X> and
+         <?Term2 is a polynomial in ?X> 
+}
+<<?Term1 * ?Term2> is a polynomial in ?X> if {
+         <?Term1 is a polynomial in ?X> and
+         <?Term2 is a polynomial in ?X> 
+}
+<<?Term1 / ?Term2> is a polynomial in ?X> if {
+         <?Term1 is a polynomial in ?X> and
+         <?Term2 is a constant> 
+}
+<<?Term ^ ?N> is a polynomial in ?X> if {
+         <?N is a natural number> and
+         <?Term is a polynomial in ?X> 
+}
+
+
+<?X unifies with ?Y> if {
+    <?X is a variable> and
+    <?Y is a variable> and
+    <?X is equal to ?Y>
+}
+
+<?X unifies with ?Y> if {
+    <?X is a variable> and
+    <?Y is not a variable> and
+    <?X is equal to ?Y>
+}
+
+<?X unifies with ?Y> if {
+    <?X is not a variable> and
+    <?Y is a variable> and   
+    <?X is equal to ?Y>
+}
+
+<?X unifies with ?Y> if {
+    <?X is not a variable> and
+    <?Y is not a variable> and
+    <?X is a constant> and
+    <?Y is a constant> and
+    <?X is equal to ?Y>
+}
+
+<?X unifies with ?Y> if {
+    <?X is not a variable> and
+    <?Y is not a variable> and
+    <?X is a compound term> and
+    <?Y is a compound term> and
+    <?X unifies with ?Y term-wise>
+}
+
+<?X unifies with ?Y term-wise> if {
+    <?F is a functor of ?X with arity ?N> and
+    <?F is a functor of ?Y with arity ?N> and
+    <?N arguments of ?X and ?Y can be unified>
+}
+
+<?N arguments of ?X and ?Y can be unified> if {
+    <?N is greater than 0> and
+    <arguments ?N of ?X and ?Y can be unified> and
+    <?N - <1> = ?N1> and
+    <?N1 arguments of ?X and ?Y can be unified>
+}
+
+<arguments ?N of ?X and ?Y can be unified> if {
+    <?ArgX is the ?N argument of ?X> and
+    <?ArgY is the ?N argument of ?Y> and
+    <?ArgX unifies with ?ArgY>
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
