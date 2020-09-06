@@ -75,7 +75,7 @@ impl fmt::Display for Sentence {
 }
 
     
-#[derive(Debug, Clone)]    
+#[derive(Debug,  Clone)]    
 pub struct Variable {
         pub variable_name: String,
         pub variable_id: i32,
@@ -84,9 +84,35 @@ pub struct Variable {
 
 impl fmt::Display for Variable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "?{}<{}>", self.variable_name, self.variable_id)
+        write!(f, "?{}", self.variable_name)
     }
 }
+
+impl PartialEq for Variable {
+    fn eq(&self, other: &Self) -> bool {
+        self.variable_id == other.variable_id
+    }
+}
+
+impl Eq for Variable {}
+use std::cmp::Ordering;
+
+impl Ord for Variable {    
+
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.variable_id.cmp(&other.variable_id)
+            
+    }
+}
+
+
+impl PartialOrd for Variable {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+
+}
+
 
 
 #[derive(Debug, Clone)]

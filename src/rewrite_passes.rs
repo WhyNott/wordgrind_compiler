@@ -1,19 +1,12 @@
 
-
-
-
 pub mod explicit_uni {
     use crate::parser as parser;
-    
-    
-    //the first one is extract_variables!
-    //it adds new clause types: unify and structure
-    //it needs a varset
+
     #[derive(Debug, Clone)]
     pub struct Sentence {
-        name: String,
-        elements: Vec<parser::Variable>,
-        context:  Box::<parser::Context>
+        pub name: String,
+        pub elements: Vec<parser::Variable>,
+        pub context:  Box::<parser::Context>
     }
 
     use std::fmt;
@@ -129,7 +122,7 @@ pub mod explicit_uni {
 
 
     }
-    
+
 
     
     fn process_body(input: parser::LogicVerb, output: &mut Vec<LogicVerb>, varset :&mut i32)  {
@@ -231,3 +224,96 @@ pub mod explicit_uni {
 
 
 
+pub mod variable_inits {
+    use crate::parser as parser;
+    use crate::rewrite_passes::explicit_uni as explicit_uni;
+    
+    
+  
+
+    #[derive(Debug, Clone)]
+    pub struct Clause {
+        pub head: parser::Sentence,
+        pub variables: Option<Vec<parser::Variable>>,
+        pub body: Option<explicit_uni::LogicVerb>,
+        pub context: Box::<parser::Context>
+    }
+    
+    use std::fmt;
+    impl fmt::Display for Clause {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.head)?;
+        match &self.body {
+            Some(body) => {
+                write!(f, ":- \n     {}", body)
+            }
+            None => {
+                Ok(())
+                    
+            }           
+
+        }
+    }
+    }
+    use std::collections::BTreeSet;
+    pub fn process(input: (explicit_uni::Clause, i32)) -> (Clause, i32) {
+        let (clause, num) = input;
+        
+        
+        let variables = match &clause.body {
+            None => None,
+            Some(body) => {
+                let mut gathered_variables = BTreeSet::new();
+                process_body(body, &mut gathered_variables);
+                
+                Some(gathered_variables.into_iter().collect())
+                    
+
+            }
+
+        };
+        
+        (Clause {head: clause.head, body:clause.body, context:clause.context, variables}, num)
+            
+
+            
+        
+    }
+    
+    fn process_body(input: &explicit_uni::LogicVerb, varset:&mut BTreeSet<parser::Variable>){
+        use explicit_uni::LogicVerb;
+        
+        match input {
+            LogicVerb::Sentence(s) => {
+                for var in &s.elements {
+                    varset.insert(var.clone());
+                    
+                }
+                    
+            },
+            LogicVerb::And(a) | LogicVerb::Or(a) => {
+                for lv in a {
+                    process_body(lv, varset);
+                }
+
+            },
+            LogicVerb::Unify(v1, v2) => {
+                varset.insert(v1.clone());
+                varset.insert(v2.clone());
+            }
+            LogicVerb::Structure(v, _) => {
+                varset.insert(v.clone());
+            }
+            
+                
+
+        }
+        
+        
+
+
+    }
+
+
+
+}

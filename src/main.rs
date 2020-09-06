@@ -18,7 +18,20 @@ fn main() {
         println!("{} [{}]", clause, num);
         let (explicit, _) = rewrite_passes::explicit_uni::process((clause, num));
         println!("Explicit unification:\n {}", explicit);
+        
+        let (extracted, _) = rewrite_passes::variable_inits::process((explicit, num));
 
+        match extracted.variables{
+            None => {},
+            Some(vars) => {
+                print!("Extracted variables:\n [");
+                for ex in vars {
+                    print!("{},", ex);
+                }
+            }
+
+        }
+        println!("]");
     }
     
 }
