@@ -21,7 +21,7 @@ fn main() {
         
         let (extracted, _) = rewrite_passes::variable_inits::process((explicit, num));
 
-        match extracted.variables{
+        match &extracted.variables{
             None => {},
             Some(vars) => {
                 print!("Extracted variables:\n [");
@@ -32,6 +32,8 @@ fn main() {
 
         }
         println!("]");
+        println!("{:?}",  rewrite_passes::emission::process(extracted));
+        
     }
     
 }

@@ -1,4 +1,3 @@
-
 pub mod explicit_uni {
     use crate::parser as parser;
 
@@ -79,7 +78,7 @@ pub mod explicit_uni {
 
     #[derive(Debug, Clone)]
     pub struct Clause {
-        pub head: parser::Sentence,
+        pub head: Sentence,
         pub body: Option<LogicVerb>,
         pub context: Box::<parser::Context>
     }
@@ -103,10 +102,35 @@ pub mod explicit_uni {
     pub fn process(input: (parser::Clause, i32)) -> (Clause, i32) {
         let clause = input.0;
         let mut varset = input.1;
+        let mut new_body = Vec::new();
+        let mut head_variables = Vec::new();
+
+        for element in clause.head.elements.into_iter(){
+            match element {
+                parser::Term::Sentence(s) => {
+                    varset += 1;
+                    let new_variable = parser::Variable {
+                        variable_name: varset.to_string(),
+                        variable_id: varset,
+                        context: s.context.clone()
+                    };
+                    new_body.push(LogicVerb::Structure(new_variable.clone(), s));
+                    head_variables.push(new_variable);
+
+                },
+
+                parser::Term::Variable(v) => {
+                    head_variables.push(v);
+
+                }
+
+            }
+
+
+        }
     
         let new_body = match clause.body {
             Some(body) => {
-                let mut new_body = Vec::new();
                 process_body(body, &mut new_body, &mut varset);
                 Some(if new_body.len() == 1 {
                     new_body.into_iter().next().expect("Sentence is empty")
@@ -115,10 +139,26 @@ pub mod explicit_uni {
                 })
                 
             },
-            None => None
+            None => {
+                if new_body.is_empty(){
+                   None 
+                } else {
+                    Some(LogicVerb::And(new_body))
+                }
+                
+            }
                 
         };
-        (Clause {head: clause.head, body: new_body, context: clause.context}, varset)
+        (Clause {
+            head: Sentence {
+                name: clause.head.name,
+                elements: head_variables,
+                context:clause.head.context
+            },
+            body: new_body,
+            context: clause.context
+        },
+         varset)
 
 
     }
@@ -233,7 +273,7 @@ pub mod variable_inits {
 
     #[derive(Debug, Clone)]
     pub struct Clause {
-        pub head: parser::Sentence,
+        pub head: explicit_uni::Sentence,
         pub variables: Option<Vec<parser::Variable>>,
         pub body: Option<explicit_uni::LogicVerb>,
         pub context: Box::<parser::Context>
@@ -255,6 +295,7 @@ pub mod variable_inits {
         }
     }
     }
+    
     use std::collections::BTreeSet;
     pub fn process(input: (explicit_uni::Clause, i32)) -> (Clause, i32) {
         let (clause, num) = input;
@@ -316,4 +357,95 @@ pub mod variable_inits {
 
 
 
+}
+
+pub mod emission {
+    use crate::rewrite_passes::explicit_uni as explicit_uni;
+    use crate::rewrite_passes::variable_inits as variable_inits;
+    use crate::parser as parser;
+
+    //Todo: this needs some proper display traits, so I can verify if it's working correctly
+    
+    #[derive(Debug)]
+    pub struct Procedure {
+        pub head: explicit_uni::Sentence,
+        pub variables: Vec<parser::Variable>,
+        pub continuations: Vec<EmissionVerb>,
+        pub body: EmissionVerb,
+        pub context: Box::<parser::Context>
+    }
+    
+    //and means going in nested depth - either continuations or conditions
+    //or means going in broadness
+    #[derive(Debug)]
+    pub enum Semidet {
+        Unify(parser::Variable, parser::Variable),
+        Structure(parser::Variable, parser::Sentence)
+    }
+
+    
+    #[derive(Debug)]
+    pub enum EmissionVerb {
+        Cond(Semidet, i32),
+        Or(Vec<EmissionVerb>),
+        Call(explicit_uni::Sentence, i32)
+    }
+    
+    
+    //the first version is focused on being super-simple,
+    //even if it's going to be painfully inefficient
+    //only after you make sure that version is correct, move on
+
+    
+    pub fn process(input: variable_inits::Clause) -> Procedure {
+        let mut continuations = Vec::new();
+        Procedure {
+            head: input.head,
+            variables: input.variables.expect("There should probably be some variables by now."),
+            body: process_body(input.body.expect("There should really be a body by now."),
+                               &mut continuations),
+            continuations,
+            context: input.context
+        }
+        
+    }
+
+
+    
+    
+    fn process_body(input: explicit_uni::LogicVerb, mut conts: &mut Vec<EmissionVerb>) -> EmissionVerb {
+        match input {
+            explicit_uni::LogicVerb::Sentence(s) => {
+                EmissionVerb::Call(s, conts.len() as i32)
+            },
+            explicit_uni::LogicVerb::And(lvs) => {
+                let mut lvs_iterator = lvs.into_iter();
+                let first_element = lvs_iterator.next().expect("And is empty!");
+                for lv in lvs_iterator.rev() {
+                    let result = process_body(lv, &mut conts); 
+                    conts.push(result);
+                }
+                process_body(first_element, &mut conts)
+            },
+            explicit_uni::LogicVerb::Or(lvs) => {
+                let mut new_or = Vec::with_capacity(lvs.len());
+                for lv in lvs.into_iter(){
+                    new_or.push(process_body(lv, &mut conts));
+                }
+                EmissionVerb::Or(new_or)
+            },
+            explicit_uni::LogicVerb::Unify(v1, v2) =>
+                EmissionVerb::Cond(Semidet::Unify(v1, v2), conts.len() as i32),
+            
+            explicit_uni::LogicVerb::Structure(v, s) =>
+                EmissionVerb::Cond(Semidet::Structure(v, s), conts.len() as i32)
+            
+
+        }
+        
+
+    }
+    
+
+    
 }
