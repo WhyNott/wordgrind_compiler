@@ -401,11 +401,12 @@ fn transform_map(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMa
 
             let context = value[0].0.context.clone();
             
-            for _ in 0..*arity {
+            for i in 0..*arity {
                 highest += 1;
                 new_arguments.push(
                     Term::Variable(Variable {
-                        variable_name: highest.to_string(),
+                        variable_name: "head_".to_owned() + &i.to_string(),
+                        
                         variable_id: highest,
                         context: context.clone()
   

@@ -110,7 +110,8 @@ pub mod explicit_uni {
                 parser::Term::Sentence(s) => {
                     varset += 1;
                     let new_variable = parser::Variable {
-                        variable_name: varset.to_string(),
+                        variable_name: "head_".to_owned() + &varset.to_string(),
+                        
                         variable_id: varset,
                         context: s.context.clone()
                     };
@@ -475,7 +476,7 @@ pub mod emission {
 
 
     
-    //it doesn't seem to be working correctly
+    //actually, it does seem to be working correctly!
     fn process_body(input: explicit_uni::LogicVerb, mut conts: &mut Vec<EmissionVerb>) -> EmissionVerb {
         match input {
             explicit_uni::LogicVerb::Sentence(s) => {
