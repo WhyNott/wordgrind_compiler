@@ -364,8 +364,7 @@ pub mod emission {
     use crate::rewrite_passes::variable_inits as variable_inits;
     use crate::parser as parser;
 
-    //Todo: this needs some proper display traits, so I can verify if it's working correctly
-    
+        
     #[derive(Debug)]
     pub struct Procedure {
         pub head: explicit_uni::Sentence,
@@ -373,6 +372,25 @@ pub mod emission {
         pub continuations: Vec<EmissionVerb>,
         pub body: EmissionVerb,
         pub context: Box::<parser::Context>
+    }
+
+    
+
+    use std::fmt;
+    impl fmt::Display for Procedure {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "{} {{\n<", self.head)?;
+            for var in &self.variables {
+                write!(f, "{}, ", var)?;
+            }
+            write!(f, ">\n{}\n}}", self.body)?;
+            writeln!(f, " Continuations: {{")?;
+            for (i, cont) in self.continuations.iter().enumerate() {
+                writeln!(f, "{} : {}, ", i+1, cont)?;
+            }
+            writeln!(f, "}}")
+                
+        }
     }
     
     //and means going in nested depth - either continuations or conditions
@@ -384,12 +402,57 @@ pub mod emission {
     }
 
     
+    impl fmt::Display for Semidet {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match &self {
+                Semidet::Unify(a, b) => {
+                    write!(f, "unify({},{})", a, b)
+                },
+                Semidet::Structure(a, b) => {
+                    write!(f, "structure({},{})", a, b)
+                }
+
+            }
+            
+        }
+
+    }
+
+    
     #[derive(Debug)]
     pub enum EmissionVerb {
         Cond(Semidet, i32),
         Or(Vec<EmissionVerb>),
         Call(explicit_uni::Sentence, i32)
     }
+
+
+   
+    impl fmt::Display for EmissionVerb {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match &self {
+                EmissionVerb::Cond(sem, num) => write!(f, "if({}) {{{}}})", sem, num),
+                
+                EmissionVerb::Or(emverb) => {
+                    writeln!(f, "//make backup here")?;
+                    for em in emverb {
+                        writeln!(f, "{}", em)?;
+                        writeln!(f, "//restore backup here")?;
+                    }
+                    Ok(())
+                        
+
+                },           
+                EmissionVerb::Call(sent, num) => write!(f, "{}({})", sent, num),              
+                
+
+            }
+            
+            
+        }
+     
+    }
+    
     
     
     //the first version is focused on being super-simple,
@@ -412,7 +475,7 @@ pub mod emission {
 
 
     
-    
+    //it doesn't seem to be working correctly
     fn process_body(input: explicit_uni::LogicVerb, mut conts: &mut Vec<EmissionVerb>) -> EmissionVerb {
         match input {
             explicit_uni::LogicVerb::Sentence(s) => {

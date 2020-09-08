@@ -8,7 +8,7 @@ mod rewrite_passes;
 
 fn main() {
     println!("Hello, world!");
-    let filename = "test_4.wg";
+    let filename = "add.wg";
     let file_results = parser::consult_file(filename);
     for (key, value) in file_results.into_iter(){
         let (name, arity) = key;
@@ -32,7 +32,7 @@ fn main() {
 
         }
         println!("]");
-        println!("{:?}",  rewrite_passes::emission::process(extracted));
+        println!("{}",  rewrite_passes::emission::process(extracted));
         
     }
     
