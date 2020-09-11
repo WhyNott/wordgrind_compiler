@@ -382,7 +382,8 @@ pub mod emission {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "{} {{\n<", self.head)?;
             for var in &self.variables {
-                write!(f, "{}, ", var)?;
+                write!(f, "{}({}), ", var, var.variable_id)?;
+          
             }
             write!(f, ">\n{}\n}}", self.body)?;
             writeln!(f, " Continuations: {{")?;
@@ -467,42 +468,55 @@ pub mod emission {
             head: input.head,
             variables: input.variables.expect("There should probably be some variables by now."),
             body: process_body(input.body.expect("There should really be a body by now."),
-                               &mut continuations),
+                               &mut continuations, false),
             continuations,
             context: input.context
         }
-        
     }
 
 
     
     //actually, it does seem to be working correctly!
-    fn process_body(input: explicit_uni::LogicVerb, mut conts: &mut Vec<EmissionVerb>) -> EmissionVerb {
+    fn process_body(input: explicit_uni::LogicVerb, mut conts: &mut Vec<EmissionVerb>, last: bool) -> EmissionVerb {
+        let cont_num = if last {0} else {conts.len() as i32};
         match input {
             explicit_uni::LogicVerb::Sentence(s) => {
-                EmissionVerb::Call(s, conts.len() as i32)
+                EmissionVerb::Call(s, cont_num)
             },
             explicit_uni::LogicVerb::And(lvs) => {
+                let lvs_len = lvs.len();
                 let mut lvs_iterator = lvs.into_iter();
                 let first_element = lvs_iterator.next().expect("And is empty!");
-                for lv in lvs_iterator.rev() {
-                    let result = process_body(lv, &mut conts); 
+
+                let mut lvs_iterator_reverse = lvs_iterator.rev();
+
+                match lvs_iterator_reverse.next() {
+                    None => {},
+                    Some(lv) => {
+                        let result = process_body(lv, &mut conts, true); 
+                        conts.push(result);
+                    }
+                }
+
+                for lv in lvs_iterator_reverse {
+                    let result = process_body(lv, &mut conts, false); 
                     conts.push(result);
                 }
-                process_body(first_element, &mut conts)
+                process_body(first_element, &mut conts, lvs_len == 1)
+                    
             },
             explicit_uni::LogicVerb::Or(lvs) => {
                 let mut new_or = Vec::with_capacity(lvs.len());
                 for lv in lvs.into_iter(){
-                    new_or.push(process_body(lv, &mut conts));
+                    new_or.push(process_body(lv, &mut conts, false));
                 }
                 EmissionVerb::Or(new_or)
             },
             explicit_uni::LogicVerb::Unify(v1, v2) =>
-                EmissionVerb::Cond(Semidet::Unify(v1, v2), conts.len() as i32),
+                EmissionVerb::Cond(Semidet::Unify(v1, v2), cont_num),
             
             explicit_uni::LogicVerb::Structure(v, s) =>
-                EmissionVerb::Cond(Semidet::Structure(v, s), conts.len() as i32)
+                EmissionVerb::Cond(Semidet::Structure(v, s), cont_num)
             
 
         }
