@@ -38,6 +38,73 @@ function clone(term){
 }
 
 
+function query(string){
+    const v_map = {
+        map_data: {},
+        freshness_counter: 0,
+        insert: function (variable) {
+            if (variable in this.map_data)
+                return this.map_data[variable];
+            else {
+                const new_var = {bound:{value: false, freshness: this.freshness_counter}};
+                this.freshness_counter++;
+                this.map_data[variable] = new_var;
+                return new_var;
+
+            }
+
+        }
+
+    };
+    return sentence_parse(string, {"value":0}, v_map);
+
+
+}
+
+
+
+function sentence_parse(string, index, v_map){
+    let sentence_name = "";
+    const elements = [];
+    console.assert(string[index.value] == "<");
+    index.value++;
+    for (; index.value < string.length; index.value++){
+        const i = index.value;
+        if (string[i] == ">"){
+            return {bound:{value: {functor: sentence_name, args: elements}}};
+        }
+        else if (string[i] == "<"){
+            sentence_name = sentence_name.concat("{}");
+            elements.push(sentence_parse(string, index, v_map));
+        } else if (string[i] == "?" && (string[i-1] == " " || string[i-1] == "<")){
+            sentence_name = sentence_name.concat("{}");
+            let variable_name = "";
+            for (; string[index.value] != " " && string[index.value] != ">"; index.value++){
+                variable_name = variable_name.concat(string[index.value]);
+            }
+            elements.push(v_map.insert(variable_name));
+            index.value--; //the ending space or bracket should be parsed too
+        }
+        else {
+            sentence_name = sentence_name.concat(string[i]);
+
+        }
+            
+
+    }
+    throw "sentence string ended unexpectedly!"
+}
+
+function sentence_pprint(term){
+
+    //lets'a finish this later
+
+
+}
+
+
+
+
 
 const predicates = {
     "{} plus {} equals {}": (head_0, head_1, head_2, index, cont_0) => {
