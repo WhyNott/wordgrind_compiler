@@ -56,8 +56,16 @@ function query(string){
         }
 
     };
-    return sentence_parse(string, {"value":0}, v_map);
-
+    const input = sentence_parse(string, {"value":0}, v_map);
+    
+    
+    const output = ()=>{
+        Object.keys(v_map.map_data).forEach(function(key,index) {
+            console.log(key+" = " + sentence_pprint(v_map.map_data[key]));
+        });
+    };
+    
+    predicates[input.bound.value.functor](...input.bound.value.args, v_map.freshness_counter, output); 
 
 }
 
@@ -71,7 +79,11 @@ function sentence_parse(string, index, v_map){
     for (; index.value < string.length; index.value++){
         const i = index.value;
         if (string[i] == ">"){
-            return {bound:{value: {functor: sentence_name, args: elements}}};
+
+            if (elements.length == 0)
+                return {bound:{value: sentence_name}};
+            else
+                return {bound:{value: {functor: sentence_name, args: elements}}};
         }
         else if (string[i] == "<"){
             sentence_name = sentence_name.concat("{}");
@@ -95,9 +107,34 @@ function sentence_parse(string, index, v_map){
     throw "sentence string ended unexpectedly!"
 }
 
-function sentence_pprint(term){
-
-    //lets'a finish this later
+function sentence_pprint(term, bracketed = true){
+    const bn = term.bound;
+    let out = "";
+    if (!term.bound.value){
+        out += "?_";
+        if ("freshness" in bn){
+            out += bn.freshness.toString();
+        }
+        
+    } else if (typeof bn.value !== 'object') {
+        if (bracketed)
+            out += "<";
+        out += bn.value.toString();
+        if (bracketed)
+            out += ">";
+        
+    } else {
+        const term = bn.value;
+        let i = 0;
+        if (bracketed)
+            out += "<";
+        out += term.functor.replace(/{}/g, function () {
+            return typeof term.args[i] != 'undefined' ? sentence_pprint(term.args[i++]) : '';
+        });
+        if (bracketed)
+            out += ">";
+    }
+    return out;
 
 
 }
@@ -179,7 +216,7 @@ function test(){
 
     const var_C =  {bound:{value: false, freshness: 0}};
 
-    const hi = () => {console.log(JSON.stringify(var_C.bound))};
+    const hi = () => {console.log(sentence_pprint(var_C))};
     
     predicates["{} plus {} equals {}"](var_A, var_B, var_C, 0, hi);
 
@@ -199,7 +236,7 @@ function test(){
     ]}}};
 
 
-    const hi2 = () => {console.log(JSON.stringify(var_B2.bound))};
+    const hi2 = () => {console.log(sentence_pprint(var_B2))};
     
     predicates["{} plus {} equals {}"](var_A2, var_B2, var_C2, 0, hi2);
 
