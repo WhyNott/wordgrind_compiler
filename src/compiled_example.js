@@ -1,53 +1,154 @@
-function unify (x, y){
-    if (x.bound.value === false && y.bound.value === false){
-        if (x.bound.freshness > y.bound.freshness){
-            console.log("Variable ${x.bound.freshness} now points to ${y.bound.freshness}");
-            x.bound = y.bound;
+//ok, so for now variables don't have ID's. we'll see how well that goes.
+
+const term_prototype = {
+    variable: false,
+    model: false,
+    value: null,
+
+    is_atom(){
+        return typeof this.value !== 'object' && this.value !== null;
+    },
+    
+    is_variable(){
+        return this.variable;
+    },
+
+    is_model(){
+        return this.model;
+    },
+
+    bound(){
+        console.assert(this.is_variable());
+        if (this.value === null){
+            return false;
+        } else {
+            return true;
         }
-        else {
-            console.log("Variable ${y.bound.freshness} now points to ${x.bound.freshness}");
-	    y.bound = x.bound;
+    },
+    
+    dereferenced(){
+        if (this.bound()){
+            return this.value.dereferenced_value();
+        } else {
+            return this;
         }
-	return true;
-    } else if (x.bound.value === false && y.bound.value !== false) {
-	x.bound.value = y.bound.value;
-	return true;
-    } else if (x.bound.value !== false && y.bound.value === false) {
-	y.bound.value = x.bound.value;
-	return true;
-    } else if (typeof x.bound.value !== 'object' || typeof y.bound.value !== 'object'){
-	return x.bound.value === y.bound.value;
-    } else {
-	if (x.bound.value.functor !== y.bound.value.functor || x.bound.value.args.length !== y.bound.value.args.length){
-	    return false;
-	}
-	for (let i = 0; i < x.bound.value.args.length; i++){
-	    let result = unify(x.bound.value.args[i], y.bound.value.args[i]);
-	    if (!result){
-		return false;
-	    }
-	}
-	return true;
-	
-    }
+
+    },
+
+    //note: I think I don't understand what this function does and hence I have no idea what to call it
+    dereferenced_value(){
+        if (this.is_variable()){
+            return this.dereferenced();
+        } else {
+            return this;
+        }
+        
+    },
+    
+    bind(sq){
+        console.assert(this.is_variable());
+        if (sq.is_model()){
+            this.value = sq.copy();
+        } else {
+            this.value = sq;
+        }
+        
+    },
+    
+    copy(){
+        if (this.is_variable()){
+            const a = this.dereferenced();
+            if (a.is_variable()){
+                const b = Object.create(term_prototype, {variable: {value : true}}); //new empty variable
+                a.value = b;
+                return b;
+            } else {
+                return a;
+            }
+        } else if (this.is_atom()) {
+            return this;
+        } else {
+            let new_args = [];
+            for (val of this.value.args){
+                new_args.push(val.copy());
+            }
+            const term_copy = {functor: this.value.functor, args: new_args}; 
+            
+            return Object.create(term_prototype, {value: {value : term_copy}}); //new term (marked as instance)
+        }
+        
+    },
+    
+    unify_with(other){
+        const x = this.dereferenced_value();
+        const y = other.dereferenced_value();
+
+        if (x.value === y.value){
+            return true;
+        } else if (x.is_variable()) {
+            x.bind(y);
+            return true;
+        } else if (y.is_variable()) {
+            y.bind(x);
+            return true;
+        } else if (x.is_atom() || y.is_atom()){
+            return false;
+        } else {
+            if (x.value.functor !== y.value.functor || x.value.args.length !== y.value.args.length){
+                return false;
+            } else {
+                for (let i = 0; i < x.value.args.length; i++){
+	            const result = x.value.args[i].unify_with(y.value.args[i]);
+	            if (!result){
+		        return false;
+	            }
+	        }
+	        return true;  
+            } 
+        }
+
+    },
+
+    pprint(bracketed = true){
+        const term = this.dereferenced_value();
+        let out = "";
+        if (term.is_variable()){
+            out += "?_";
+        } else if (term.is_atom()) {
+            if (bracketed)
+                out += "<";
+            out += term.value.toString();
+        if (bracketed)
+            out += ">";
+            
+        } else {
+            const content = term.value;
+            let i = 0;
+            if (bracketed)
+                out += "<";
+            out += content.functor.replace(/{}/, function () {
+                return typeof content.args[i] != 'undefined' ? (content.args[i++]).pprint(bracketed) : '';
+            });
+            if (bracketed)
+                out += ">";
+        }
+        return out;
+        
+        
+    },
+    
+
 }
 
-function clone(term){
-    //todo: replace it with something slightly faster, maybe from some js library or sth
-    return JSON.parse(JSON.stringify(term));
-}
 
-
-function query(string){
+function query(string, out_pipe){
     const v_map = {
         map_data: {},
-        freshness_counter: 0,
         insert: function (variable) {
             if (variable in this.map_data)
                 return this.map_data[variable];
             else {
-                const new_var = {bound:{value: false, freshness: this.freshness_counter}};
-                this.freshness_counter++;
+                const new_var = Object.create(term_prototype, {variable: {value : true}});
                 this.map_data[variable] = new_var;
                 return new_var;
 
@@ -56,16 +157,22 @@ function query(string){
         }
 
     };
+
     const input = sentence_parse(string, {"value":0}, v_map);
     
-    
+    let succedeed = false;
     const output = ()=>{
+        succedeed = true;
         Object.keys(v_map.map_data).forEach(function(key,index) {
-            console.log(key+" = " + sentence_pprint(v_map.map_data[key]));
+            out_pipe(key+" = " + v_map.map_data[key].pprint());
         });
     };
+
+
+    predicates[input.value.functor](...input.value.args, output);
+    if (!succedeed)
+        out_pipe("false");
     
-    predicates[input.bound.value.functor](...input.bound.value.args, v_map.freshness_counter, output); 
 
 }
 
@@ -79,11 +186,12 @@ function sentence_parse(string, index, v_map){
     for (; index.value < string.length; index.value++){
         const i = index.value;
         if (string[i] == ">"){
-
             if (elements.length == 0)
-                return {bound:{value: sentence_name}};
-            else
-                return {bound:{value: {functor: sentence_name, args: elements}}};
+                return Object.create(term_prototype, {value: {value : sentence_name}});
+            else {
+                const str = {functor: sentence_name, args:elements};
+                return Object.create(term_prototype, {value: {value : str}});
+            }
         }
         else if (string[i] == "<"){
             sentence_name = sentence_name.concat("{}");
@@ -107,140 +215,75 @@ function sentence_parse(string, index, v_map){
     throw "sentence string ended unexpectedly!"
 }
 
-function sentence_pprint(term, bracketed = true){
-    const bn = term.bound;
-    let out = "";
-    if (!term.bound.value){
-        out += "?_";
-        if ("freshness" in bn){
-            out += bn.freshness.toString();
-        }
-        
-    } else if (typeof bn.value !== 'object') {
-        if (bracketed)
-            out += "<";
-        out += bn.value.toString();
-        if (bracketed)
-            out += ">";
-        
-    } else {
-        const term = bn.value;
-        let i = 0;
-        if (bracketed)
-            out += "<";
-        out += term.functor.replace(/{}/g, function () {
-            return typeof term.args[i] != 'undefined' ? sentence_pprint(term.args[i++]) : '';
-        });
-        if (bracketed)
-            out += ">";
-    }
-    return out;
-
-
-}
-
 
 
 
 
 const predicates = {
-    "{} plus {} equals {}": (head_0, head_1, head_2, index, cont_0) => {
-        const var_A  = {bound:{value: false, freshness: 0 + index }};
-        const var_B  = {bound:{value: false, freshness: 1 + index }};
-        const var_C  = {bound:{value: false, freshness: 2 + index }};
+    "{} plus {} equals {}": (head_0, head_1, head_2, cont_0) => {
+        const var_A  = Object.create(term_prototype, {variable: {value : true}});
+        const var_B  = Object.create(term_prototype, {variable: {value : true}});
+        const var_C  = Object.create(term_prototype, {variable: {value : true}});
        
         const cont_1 = (next) => {
-            if (unify(var_A, head_2)) {next()}
+            if (var_A.unify_with(head_2)) {next()}
         };
         const cont_2 = (next) => {
-            if (unify(head_1, {bound:{value:'0'}})) {cont_1(next)}
+            if (head_1.unify_with(Object.create(term_prototype, {value: {value : "0"}}))){
+                cont_1(next);
+            }
         };
         const cont_3 = (next) => {
             
-            predicates["{} plus {} equals {}"](var_A, var_B, var_C, index+7, next);
+            predicates["{} plus {} equals {}"](var_A, var_B, var_C, next);
         };
         const cont_4 = (next) => {
-            if (unify(head_2, {bound:{value:{functor:'s of {}', args:[var_C]}}})) {cont_3(next)}
+            const content = {functor:'s of {}', args:[var_C]};
+            const model = Object.create(term_prototype, {
+                value: {value : content},
+                model: {value : true}
+            });
+            if (head_2.unify_with(model)) {
+                cont_3(next);
+            }
         };
   
         const cont_5 = (next) => {
-            if (unify(head_1, {bound:{value:{functor:'s of {}', args:[var_B]}}})) {cont_4(next)}
+            const content = {functor:'s of {}', args:[var_B]};
+            const model = Object.create(term_prototype, {
+                value: {value : content},
+                model: {value : true}
+            });
+            if (head_1.unify_with(model)) {cont_4(next)};
         };
 
-        const backup_var_A = clone(var_A.bound.value); 
-        const backup_var_B = clone(var_B.bound.value); 
-        const backup_var_C = clone(var_C.bound.value); 
-        const backup_head_0 = clone(head_0.bound.value); 
-        const backup_head_1 = clone(head_1.bound.value); 
-        const backup_head_2 = clone(head_2.bound.value); 
+        const backup_var_A = var_A.value; 
+        const backup_var_B = var_B.value; 
+        const backup_var_C = var_C.value; 
+        const backup_head_0 = head_0.value; 
+        const backup_head_1 = head_1.value; 
+        const backup_head_2 = head_2.value; 
         
         
-        if (unify(var_A, head_0)) {cont_2(cont_0)};
+        if (var_A.unify_with(head_0)) {cont_2(cont_0)};
 
-        var_A.bound.value = backup_var_A; 
-        var_B.bound.value = backup_var_B; 
-        var_C.bound.value = backup_var_C; 
-        head_0.bound.value = backup_head_0; 
-        head_1.bound.value = backup_head_1; 
-        head_2.bound.value = backup_head_2; 
+        var_A.value = backup_var_A; 
+        var_B.value = backup_var_B; 
+        var_C.value = backup_var_C; 
+        head_0.value = backup_head_0; 
+        head_1.value = backup_head_1; 
+        head_2.value = backup_head_2; 
       
 
-        if (unify(var_A, head_0)) {cont_5(cont_0)};
+        if (var_A.unify_with(head_0)) {cont_5(cont_0)};
 
-        var_A.bound.value = backup_var_A; 
-        var_B.bound.value = backup_var_B; 
-        var_C.bound.value = backup_var_C; 
-        head_0.bound.value = backup_head_0; 
-        head_1.bound.value = backup_head_1; 
-        head_2.bound.value = backup_head_2; 
+        var_A.value = backup_var_A; 
+        var_B.value = backup_var_B; 
+        var_C.value = backup_var_C; 
+        head_0.value = backup_head_0; 
+        head_1.value = backup_head_1; 
+        head_2.value = backup_head_2; 
       
     },
-
-}
-
-
-function test(){
-    
-
-    const var_A = {bound:{value:{functor:'s of {}', args:[
-        {bound:{value:{functor:'s of {}', args:[
-            {bound:{value:'0'}}
-        ]}}}
-    ]}}};
-
-    const var_B = {bound:{value:{functor:'s of {}', args:[
-        {bound:{value:{functor:'s of {}', args:[
-            {bound:{value:'0'}}
-        ]}}}
-    ]}}};
-
-    const var_C =  {bound:{value: false, freshness: 0}};
-
-    const hi = () => {console.log(sentence_pprint(var_C))};
-    
-    predicates["{} plus {} equals {}"](var_A, var_B, var_C, 0, hi);
-
-
-    const var_A2 = {bound:{value:{functor:'s of {}', args:[
-        
-        {bound:{value:'0'}}
-        
-    ]}}};
-
-    const var_B2 =  {bound:{value: false, freshness: 0}};
-    
-    const var_C2 = {bound:{value:{functor:'s of {}', args:[
-        {bound:{value:{functor:'s of {}', args:[
-            {bound:{value:'0'}}
-        ]}}}
-    ]}}};
-
-
-    const hi2 = () => {console.log(sentence_pprint(var_B2))};
-    
-    predicates["{} plus {} equals {}"](var_A2, var_B2, var_C2, 0, hi2);
-
-
-    
 
 }
