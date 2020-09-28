@@ -1,5 +1,6 @@
 //ok, so for now variables don't have ID's. we'll see how well that goes.
-
+//<<s of <0>> plus <s of <0>> equals ?X>
+//<?X plus <s of <0>> equals <s of <0>>>
 const term_prototype = {
     variable: false,
     model: false,
@@ -83,13 +84,13 @@ const term_prototype = {
         const x = this.dereferenced_value();
         const y = other.dereferenced_value();
 
-        if (x.value === y.value){
-            return true;
-        } else if (x.is_variable()) {
+        if (x.is_variable()) {
             x.bind(y);
             return true;
         } else if (y.is_variable()) {
             y.bind(x);
+            return true;
+        } else if (x.value === y.value){
             return true;
         } else if (x.is_atom() || y.is_atom()){
             return false;
