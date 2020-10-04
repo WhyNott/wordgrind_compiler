@@ -1,11 +1,56 @@
-//ok, so for now variables don't have ID's. we'll see how well that goes.
 //<<s of <0>> plus <s of <0>> equals ?X>
 //<?X plus <s of <0>> equals <s of <0>>>
+
+//Next step will be adding a plot for visualizing the bound variables as a directed graph
+
+let global_variable_counter = 0;
+
+function make_empty_variable(name){
+    const variable = Object.create(term_prototype, {
+        variable: {value : true},
+        name: {value: name}
+    });
+    variable.value = variable;
+    return variable;
+}
+
+function make_atom(val){
+    return Object.create(term_prototype, {
+        value: {value: val},
+        name: {value: val.toString()}
+    });
+}
+
+function make_structured_term(functor, args){
+    const struct = {functor:functor, args:args};
+    return Object.create(term_prototype, {
+        value: {value : struct},
+        name: {value : functor}
+    });
+}
+
+function make_atom_model(val){
+    return Object.create(term_prototype, {
+        value: {value: val},
+        name: {value: val.toString()},
+        model: {value : true}
+    });
+}
+
+function make_structured_model(functor, args){
+    const struct = {functor:functor, args:args};
+    return Object.create(term_prototype, {
+        value: {value : struct},
+        name: {value : functor},
+        model: {value : true}
+    });
+}
+
+
 const term_prototype = {
     variable: false,
     model: false,
-    value: null,
-
+ 
     is_atom(){
         return typeof this.value !== 'object' && this.value !== null;
     },
@@ -20,7 +65,7 @@ const term_prototype = {
 
     bound(){
         console.assert(this.is_variable());
-        if (this.value === null){
+        if (Object.is(this.value, this)){
             return false;
         } else {
             return true;
@@ -28,12 +73,19 @@ const term_prototype = {
     },
     
     dereferenced(){
-        if (this.bound()){
-            return this.value.dereferenced_value();
+        if (this.is_variable()) {
+            if (this.bound()){
+                if (this.is_atom() || 'functor' in this.value)
+                    return this;
+                else
+                    return this.value.dereferenced_value(); 
+            } else {
+                return this;
+            }
         } else {
             return this;
         }
-
+        
     },
 
     //note: I think I don't understand what this function does and hence I have no idea what to call it
@@ -45,6 +97,7 @@ const term_prototype = {
         }
         
     },
+
     
     bind(sq){
         console.assert(this.is_variable());
@@ -60,22 +113,20 @@ const term_prototype = {
         if (this.is_variable()){
             const a = this.dereferenced();
             if (a.is_variable()){
-                const b = Object.create(term_prototype, {variable: {value : true}}); //new empty variable
+                const b = make_empty_variable(a.name + "_copy_" + (global_variable_counter++));
                 a.value = b;
                 return b;
             } else {
                 return a;
             }
         } else if (this.is_atom()) {
-            return this;
+            return make_atom(this.value);
         } else {
             let new_args = [];
             for (val of this.value.args){
                 new_args.push(val.copy());
             }
-            const term_copy = {functor: this.value.functor, args: new_args}; 
-            
-            return Object.create(term_prototype, {value: {value : term_copy}}); //new term (marked as instance)
+            return make_structured_term(this.value.functor, new_args);
         }
         
     },
@@ -84,10 +135,10 @@ const term_prototype = {
         const x = this.dereferenced_value();
         const y = other.dereferenced_value();
 
-        if (x.is_variable()) {
+        if (x.is_variable() && !x.bound()) {
             x.bind(y);
             return true;
-        } else if (y.is_variable()) {
+        } else if (y.is_variable() && !y.bound()) {
             y.bind(x);
             return true;
         } else if (x.value === y.value){
@@ -114,7 +165,7 @@ const term_prototype = {
         const term = this.dereferenced_value();
         let out = "";
         if (term.is_variable()){
-            out += "?_";
+            out += ("?"+term.name);
         } else if (term.is_atom()) {
             if (bracketed)
                 out += "<";
@@ -149,7 +200,7 @@ function query(string, out_pipe){
             if (variable in this.map_data)
                 return this.map_data[variable];
             else {
-                const new_var = Object.create(term_prototype, {variable: {value : true}});
+                const new_var = make_empty_variable(variable);
                 this.map_data[variable] = new_var;
                 return new_var;
 
@@ -188,10 +239,9 @@ function sentence_parse(string, index, v_map){
         const i = index.value;
         if (string[i] == ">"){
             if (elements.length == 0)
-                return Object.create(term_prototype, {value: {value : sentence_name}});
+                return make_atom(sentence_name);
             else {
-                const str = {functor: sentence_name, args:elements};
-                return Object.create(term_prototype, {value: {value : str}});
+                return make_structured_term(sentence_name, elements);
             }
         }
         else if (string[i] == "<"){
@@ -219,51 +269,41 @@ function sentence_parse(string, index, v_map){
 
 
 
-
+//okay, so this should recur infinitely, but for some reason it doesn't
+//I think the reason has something to do with the head variables not resetting properly sometimes
 const predicates = {
     "{} plus {} equals {}": (head_0, head_1, head_2, cont_0) => {
-        const var_A  = Object.create(term_prototype, {variable: {value : true}});
-        const var_B  = Object.create(term_prototype, {variable: {value : true}});
-        const var_C  = Object.create(term_prototype, {variable: {value : true}});
-       
+        const var_A  = make_empty_variable("A" + (global_variable_counter++));
+        const var_B  = make_empty_variable("B" + (global_variable_counter++));
+        const var_C  = make_empty_variable("C" + (global_variable_counter++)); 
+        
         const cont_1 = (next) => {
             if (var_A.unify_with(head_2)) {next()}
         };
         const cont_2 = (next) => {
-            if (head_1.unify_with(Object.create(term_prototype, {value: {value : "0"}}))){
+            if (head_1.unify_with(make_atom_model("0"))){
                 cont_1(next);
             }
         };
-        const cont_3 = (next) => {
-            
+        const cont_3 = (next) => {         
             predicates["{} plus {} equals {}"](var_A, var_B, var_C, next);
         };
         const cont_4 = (next) => {
-            const content = {functor:'s of {}', args:[var_C]};
-            const model = Object.create(term_prototype, {
-                value: {value : content},
-                model: {value : true}
-            });
-            if (head_2.unify_with(model)) {
+            if (head_2.unify_with(make_structured_model('s of {}', [var_C]))) {
                 cont_3(next);
             }
         };
   
         const cont_5 = (next) => {
-            const content = {functor:'s of {}', args:[var_B]};
-            const model = Object.create(term_prototype, {
-                value: {value : content},
-                model: {value : true}
-            });
-            if (head_1.unify_with(model)) {cont_4(next)};
+            if (head_1.unify_with(make_structured_model('s of {}', [var_B]))) {cont_4(next)};
         };
 
-        const backup_var_A = var_A.value; 
-        const backup_var_B = var_B.value; 
-        const backup_var_C = var_C.value; 
-        const backup_head_0 = head_0.value; 
-        const backup_head_1 = head_1.value; 
-        const backup_head_2 = head_2.value; 
+        const backup_var_A  = var_A.dereferenced_value() .value;
+        const backup_var_B  = var_B.dereferenced_value() .value; 
+        const backup_var_C  = var_C.dereferenced_value() .value; 
+        const backup_head_0 = head_0.dereferenced_value().value; 
+        const backup_head_1 = head_1.dereferenced_value().value; 
+        const backup_head_2 = head_2.dereferenced_value().value; 
         
         
         if (var_A.unify_with(head_0)) {cont_2(cont_0)};
