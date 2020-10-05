@@ -5,45 +5,104 @@
 
 let global_variable_counter = 0;
 
+let global_id_counter = 0;
+
+let all_terms = [];
+
+
+function produce_nodes(){
+    let nodes = [];
+    let edges = [];
+    for (term of all_terms){
+        const label = term.is_variable() ?
+              term.name
+              :
+              term.pprint();
+        
+        const category = term.is_variable() ? "variable" : (
+            term.is_atom() ? "atom" : "structured"
+        );
+        
+        nodes.push({data: {label: label, id: term.id },
+                    
+                    classes: category});
+
+        if (term.is_variable()) {
+            if (term.value.id != term.id) {
+                edges.push({ data: { source: term.id, target: term.value.id } })
+            }
+        } else if (!term.is_atom()){
+            let i = 0;
+            for (arg of term.value.args) {
+                edges.push({ data: {
+                    source: term.id,
+                    target: arg.id,
+                    label: i.toString()
+                }})
+                i++;
+            }
+            
+        }
+        
+        
+    }
+    return {nodes: nodes, edges: edges};
+}
+
+
 function make_empty_variable(name){
     const variable = Object.create(term_prototype, {
         variable: {value : true},
+        id: {value: global_id_counter++},
         name: {value: name}
     });
     variable.value = variable;
+    all_terms.push(variable);
     return variable;
 }
 
 function make_atom(val){
-    return Object.create(term_prototype, {
+    const retval = Object.create(term_prototype, {
         value: {value: val},
+        id: {value: global_id_counter++},
         name: {value: val.toString()}
     });
+    all_terms.push(retval);
+    return retval;
 }
 
 function make_structured_term(functor, args){
     const struct = {functor:functor, args:args};
-    return Object.create(term_prototype, {
+    const retval = Object.create(term_prototype, {
         value: {value : struct},
+        id: {value: global_id_counter++},
         name: {value : functor}
     });
+    all_terms.push(retval);
+    return retval; 
 }
 
 function make_atom_model(val){
-    return Object.create(term_prototype, {
+    const retval = Object.create(term_prototype, {
         value: {value: val},
+        id: {value: global_id_counter++},
         name: {value: val.toString()},
         model: {value : true}
     });
+    all_terms.push(retval);
+    return retval;
 }
 
 function make_structured_model(functor, args){
     const struct = {functor:functor, args:args};
-    return Object.create(term_prototype, {
+    const retval = Object.create(term_prototype, {
         value: {value : struct},
+        id: {value: global_id_counter++},
         name: {value : functor},
         model: {value : true}
     });
+    all_terms.push(retval);
+    return retval; 
 }
 
 

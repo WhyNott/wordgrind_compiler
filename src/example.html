@@ -1,25 +1,130 @@
-<input type="text" id="input"> <input type="submit" onclick="run_query()" value="Run query"></br>
-<textarea id="output" rows="32" cols="50" disabled="true"></textarea>
+<html>
+  <head>
+    <script src="compiled_example.js"></script>
+    <script src="js_assets/cytoscape.min.js"></script>
+    <script src="js_assets/dagre.js"></script>
+    <script src="js_assets/cytoscape-dagre.js"></script>
+  </head>
+  <body>
+    <div style="display: flex; justify-content: space-evenly">
+    <div>
+        <input type="text" id="input"> <input type="submit" onclick="run_query()" value="Run query"></br>
+        <textarea id="output" rows="32" cols="50" disabled="true"></textarea>
+         
+         
+        <script>
+          function run_query(){
+              const input = document.getElementById("input");
+              const output = document.getElementById("output");
+              
+              const out_pipe = (str) => {
+                  output.appendChild(document.createTextNode(str + "\n"));
+              };
+              try {
+                  query(input.value, out_pipe);
+              } catch (err) {
+                  out_pipe(err.toString());
+              }
+          }
 
-<script src="compiled_example.js"></script>
-<script>
-  function run_query(){
-      const input = document.getElementById("input");
-      const output = document.getElementById("output");
+          function activate_display(){
+        
+              let cy = cytoscape({
+                  container: document.getElementById('cy'),
+                  
+                  boxSelectionEnabled: false,
+                  autounselectify: true,
+                  
+                  layout: {
+                      name: 'dagre'
+                  },
 
-      const out_pipe = (str) => {
-          output.appendChild(document.createTextNode(str + "\n"));
-      };
-      try {
-          query(input.value, out_pipe);
-      } catch (err) {
-          out_pipe(err.toString());
-      }
-  }
+                  style: [
+                      {
+                          selector: 'node',
+                          style: {
+                              'background-color': '#11479e',
+                              'border-style': 'solid'
+                          }
+                      },
 
-  //The dreaded occurs check! The first time ever it actually was relevent to me!
-  //but is this actually due to a fault in my code?
-  //ok, it must a fault with my code
-  //okay, I think the whole way my variables share their memory locations is inherently flawed!
-</script>
+                      {
+                          "selector": "node[label]",
+                          "style": {
+                              "label": "data(label)",
+                              "color": "#fff",
+                              "text-outline-color": "#7CC5A7",
+                              "text-outline-width": 2,
+                              "text-valign": "center",
+                              "text-halign": "center"
+                          }
+                      },
+                      
+                      {
+                          "selector": "edge[label]",
+                          "style": {
+                              "label": "data(label)",
+                              "width": 3,
+                              "color": "#fff",
+                              "text-outline-color": "#7CC5A7",
+                              "text-outline-width": 2,
+                              "text-valign": "center",
+                              "text-halign": "center"
+                          }
+                      },
 
+                      {
+                          selector: '.variable',
+                          style: {
+                              'border-style': 'solid',
+                              'border-width' : '1',
+                              'background-color': '#A0D3B0'
+                          }
+                      },
+
+                      {
+                          selector: '.atom',
+                          style: {
+                              'border-style': 'solid',
+                              'border-width' : '1',
+                              'background-color': '#F2E89E'
+                          }
+                      },
+
+                      {
+                          selector: '.structured',
+                          style: {
+                              'border-style': 'solid',
+                              'border-width' : '1',
+                              'background-color': '#C6B476'
+                          }
+                      },
+                      
+                      {
+                          selector: 'edge',
+                          style: {
+                              'width': 4,
+                              'target-arrow-shape': 'triangle',
+                              'line-color': '#454049',
+                              'target-arrow-color': '#454049',
+                              'curve-style': 'bezier'
+                          }
+                      }
+                  ],
+                  elements: produce_nodes()
+
+              });
+
+          }
+          
+          
+        </script>
+    </div>
+    <div style="height: 50rem; width: 50vw; border-style: solid; border-width: thin;" id="cy">
+      
+    </div>
+    </div>
+    
+  </body>
+  
+</html>
