@@ -9,6 +9,16 @@ let global_id_counter = 0;
 
 let all_terms = [];
 
+function reset_globals(){
+    global_variable_counter = 0;
+                                
+    global_id_counter = 0;      
+                                
+    all_terms = [];             
+} 
+
+//this is set to the debug controller by the main page when this file is loaded
+let dc = null;
 
 function produce_nodes(){
     let nodes = [];
@@ -332,14 +342,17 @@ function sentence_parse(string, index, v_map){
 //I think the reason has something to do with the head variables not resetting properly sometimes
 const predicates = {
     "{} plus {} equals {}": (head_0, head_1, head_2, cont_0) => {
+        dc.add_new_step("<{} plus {} equals {}>");
         const var_A  = make_empty_variable("A" + (global_variable_counter++));
         const var_B  = make_empty_variable("B" + (global_variable_counter++));
         const var_C  = make_empty_variable("C" + (global_variable_counter++)); 
         
         const cont_1 = (next) => {
+            dc.add_new_step("?A = head_2");
             if (var_A.unify_with(head_2)) {next()}
         };
         const cont_2 = (next) => {
+            dc.add_new_step("head_1 = <0>");
             if (head_1.unify_with(make_atom_model("0"))){
                 cont_1(next);
             }
@@ -348,12 +361,14 @@ const predicates = {
             predicates["{} plus {} equals {}"](var_A, var_B, var_C, next);
         };
         const cont_4 = (next) => {
+            dc.add_new_step("head_2 = <s of ?C>");
             if (head_2.unify_with(make_structured_model('s of {}', [var_C]))) {
                 cont_3(next);
             }
         };
   
         const cont_5 = (next) => {
+            dc.add_new_step("head_1 = <s of ?B>");
             if (head_1.unify_with(make_structured_model('s of {}', [var_B]))) {cont_4(next)};
         };
 
@@ -364,7 +379,7 @@ const predicates = {
         const backup_head_1 = head_1.dereferenced_value().value; 
         const backup_head_2 = head_2.dereferenced_value().value; 
         
-        
+        dc.add_new_step("?A = head_0");
         if (var_A.unify_with(head_0)) {cont_2(cont_0)};
 
         var_A.value = backup_var_A; 
@@ -374,7 +389,7 @@ const predicates = {
         head_1.value = backup_head_1; 
         head_2.value = backup_head_2; 
       
-
+        dc.add_new_step("?A = head_0");
         if (var_A.unify_with(head_0)) {cont_5(cont_0)};
 
         var_A.value = backup_var_A; 

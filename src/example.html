@@ -16,112 +16,162 @@
           function run_query(){
               const input = document.getElementById("input");
               const output = document.getElementById("output");
-              
+
               const out_pipe = (str) => {
                   output.appendChild(document.createTextNode(str + "\n"));
               };
+              dc.clear();
               try {
                   query(input.value, out_pipe);
+                  dc.set_step_to(0);
               } catch (err) {
                   out_pipe(err.toString());
               }
           }
 
-          function activate_display(){
-        
-              let cy = cytoscape({
-                  container: document.getElementById('cy'),
-                  
-                  boxSelectionEnabled: false,
-                  autounselectify: true,
-                  
-                  layout: {
-                      name: 'dagre'
+          
+          window.addEventListener('DOMContentLoaded', function(){
+              const picker = document.getElementById("num_picker");
+              const label = document.getElementById("label_display");
+              dc = {
+                  current_step: 0,
+                  steps: [],
+
+                  clear(){
+                      this.steps = [];
+                      this.current_step = 0;
+                      picker.disabled=false;
+                      picker.value = 0;
+                      label.innerText = "...";
+                      reset_globals();
+                      
                   },
-
-                  style: [
-                      {
-                          selector: 'node',
-                          style: {
-                              'background-color': '#11479e',
-                              'border-style': 'solid'
-                          }
-                      },
-
-                      {
-                          "selector": "node[label]",
-                          "style": {
-                              "label": "data(label)",
-                              "color": "#fff",
-                              "text-outline-color": "#7CC5A7",
-                              "text-outline-width": 2,
-                              "text-valign": "center",
-                              "text-halign": "center"
-                          }
-                      },
+                  add_new_step(label){
+                      this.steps.push({
+                          label: label,
+                          nodes: produce_nodes()
+                      });
+                      picker.max = this.steps.length;
+                  },
+                  
+                  set_step_to(num){
+                      this.current_step = num;
+                      this.cy.elements().remove();
+                      this.cy.add(this.steps[num].nodes);
+                      label.innerText = this.steps[num].label;
+                      this.cy.layout({ name: 'dagre'}).run();
+                  },
+                  
+                  step_forward(){
+                      if (this.current_step < this.steps.length)
+                          this.set_step_to(this.current_step + 1);
+                  },
+                  
+                  step_backward(){
+                      if (this.current_step > 0)
+                          this.set_step_to(this.current_step - 1);
+                  },
+                  
+                  cy : cytoscape({
+                      container: document.getElementById('cy'),
                       
-                      {
-                          "selector": "edge[label]",
-                          "style": {
-                              "label": "data(label)",
-                              "width": 3,
-                              "color": "#fff",
-                              "text-outline-color": "#7CC5A7",
-                              "text-outline-width": 2,
-                              "text-valign": "center",
-                              "text-halign": "center"
-                          }
-                      },
-
-                      {
-                          selector: '.variable',
-                          style: {
-                              'border-style': 'solid',
-                              'border-width' : '1',
-                              'background-color': '#A0D3B0'
-                          }
-                      },
-
-                      {
-                          selector: '.atom',
-                          style: {
-                              'border-style': 'solid',
-                              'border-width' : '1',
-                              'background-color': '#F2E89E'
-                          }
-                      },
-
-                      {
-                          selector: '.structured',
-                          style: {
-                              'border-style': 'solid',
-                              'border-width' : '1',
-                              'background-color': '#C6B476'
-                          }
-                      },
+                      boxSelectionEnabled: false,
+                      autounselectify: true,
                       
-                      {
-                          selector: 'edge',
-                          style: {
-                              'width': 4,
-                              'target-arrow-shape': 'triangle',
-                              'line-color': '#454049',
-                              'target-arrow-color': '#454049',
-                              'curve-style': 'bezier'
+                      layout: {
+                          name: 'dagre'
+                      },
+                  
+                      style: [
+                          {
+                              selector: 'node',
+                              style: {
+                                  'background-color': '#11479e',
+                                  'border-style': 'solid'
+                              }
+                          },
+                  
+                          {
+                              "selector": "node[label]",
+                              "style": {
+                                  "label": "data(label)",
+                                  "color": "#fff",
+                                  "text-outline-color": "#7CC5A7",
+                                  "text-outline-width": 2,
+                                  "text-valign": "center",
+                                  "text-halign": "center"
+                              }
+                          },
+                          
+                          {
+                              "selector": "edge[label]",
+                              "style": {
+                                  "label": "data(label)",
+                                  "width": 3,
+                                  "color": "#fff",
+                                  "text-outline-color": "#7CC5A7",
+                                  "text-outline-width": 2,
+                                  "text-valign": "center",
+                                  "text-halign": "center"
+                              }
+                          },
+                  
+                          {
+                              selector: '.variable',
+                              style: {
+                                  'border-style': 'solid',
+                                  'border-width' : '1',
+                                  'background-color': '#A0D3B0'
+                              }
+                          },
+                  
+                          {
+                              selector: '.atom',
+                              style: {
+                                  'border-style': 'solid',
+                                  'border-width' : '1',
+                                  'background-color': '#F2E89E'
+                              }
+                          },
+                  
+                          {
+                              selector: '.structured',
+                              style: {
+                                  'border-style': 'solid',
+                                  'border-width' : '1',
+                                  'background-color': '#C6B476'
+                              }
+                          },
+                          
+                          {
+                              selector: 'edge',
+                              style: {
+                                  'width': 4,
+                                  'target-arrow-shape': 'triangle',
+                                  'line-color': '#454049',
+                                  'target-arrow-color': '#454049',
+                                  'curve-style': 'bezier'
+                              }
                           }
-                      }
-                  ],
-                  elements: produce_nodes()
+                      ],
+                      elements: produce_nodes()
+                  
+                  }),
+                  
+              };
+              picker.addEventListener('input', (n) => dc.set_step_to(Number(n.data)));
+              
+          });
 
-              });
-
-          }
+          
           
           
         </script>
     </div>
-    <div style="height: 50rem; width: 50vw; border-style: solid; border-width: thin;" id="cy">
-      
+    <div style="height: 50rem; width: 50vw;">
+      <input type="number" disabled="true" name="quantity" min="0" max="0" value="0" id="num_picker">
+      <h3 style="display: inline-block;padding-left: 1rem;" id="label_display">...</h3>
+      <div style=" border-style: solid; border-width: thin; height: 100%" id="cy"> </div>
     </div>
     </div>
     
