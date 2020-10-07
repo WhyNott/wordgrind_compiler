@@ -10,8 +10,9 @@ let global_id_counter = 0;
 let all_terms = [];
 let backups = [];
 
-function reg_backup(name, index, value){
-    backups.push({name:name, index:index, value:value});
+function reg_backup(name, term){
+
+    backups.push({name:name, id:global_id_counter++, value:term.dereferenced_value().value});
 }
 
 function reset_globals(){
@@ -29,10 +30,8 @@ function produce_nodes(){
     let nodes = [];
     let edges = [];
     for (backup of backups){
-        
-        const name = backup.name + "" +backup.index;
-        nodes.push({data: {label: name, id: name}, classes: "backup"});
-        edges.push({ data: { source: name, target: backup.value.id } });
+        nodes.push({data: {label: backup.name, id: backup.id}, classes: "backup"});
+        edges.push({ data: { source: backup.id, target: backup.value.id } });
     }
     
     for (term of all_terms){
@@ -418,12 +417,12 @@ const predicates = {
         const backup_head_1 = head_1.dereferenced_value().value; 
         const backup_head_2 = head_2.dereferenced_value().value; 
 
-        reg_backup("?A", index, var_A.dereferenced_value().value); 
-        reg_backup("?B", index, var_B.dereferenced_value().value); 
-        reg_backup("?C", index, var_C.dereferenced_value().value); 
-        reg_backup(head_0.direct_name(), index, head_0.dereferenced_value().value); 
-        reg_backup(head_1.direct_name(), index, head_1.dereferenced_value().value); 
-        reg_backup(head_2.direct_name(), index, head_2.dereferenced_value().value); 
+        reg_backup(var_A.name, var_A); 
+        reg_backup(var_B.name, var_B); 
+        reg_backup(var_C.name, var_C); 
+        reg_backup("head_0" + (index == 1 ? "" : index), head_0); 
+        reg_backup("head_1" + (index == 1 ? "" : index), head_1); 
+        reg_backup("head_2" + (index == 1 ? "" : index), head_2); 
         
         if (var_A.unify_with(head_0)) {
             dc.add_new_step(`?A = ${head_0.direct_name()}`);
