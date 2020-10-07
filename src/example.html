@@ -8,7 +8,7 @@
   <body>
     <div style="display: flex; justify-content: space-evenly">
     <div>
-        <input type="text" id="input"> <input type="submit" onclick="run_query()" value="Run query"></br>
+        <input type="text" id="input" style="width: 20em;"> <input type="submit" onclick="run_query()" value="Run query"></br>
         <textarea id="output" rows="32" cols="50" disabled="true"></textarea>
          
          
@@ -87,7 +87,8 @@
                               selector: 'node',
                               style: {
                                   'background-color': '#11479e',
-                                  'border-style': 'solid'
+                                  'border-style': 'solid',
+                                  'border-color': '#454049'
                               }
                           },
                   
@@ -117,17 +118,26 @@
                           },
                   
                           {
-                              selector: '.variable',
-                              style: {
+                              "selector": '.variable',
+                              "style": {
                                   'border-style': 'solid',
                                   'border-width' : '1',
                                   'background-color': '#A0D3B0'
                               }
                           },
+
+                          {
+                              "selector": '.backup',
+                              "style": {
+                                  'border-style': 'solid',
+                                  'border-width' : '1',
+                                  'background-color': '#CE80A8'
+                              }
+                          },
                   
                           {
-                              selector: '.atom',
-                              style: {
+                              "selector": '.atom',
+                              "style": {
                                   'border-style': 'solid',
                                   'border-width' : '1',
                                   'background-color': '#F2E89E'
@@ -135,12 +145,30 @@
                           },
                   
                           {
-                              selector: '.structured',
-                              style: {
+                              "selector": '.structured',
+                              "style": {
                                   'border-style': 'solid',
                                   'border-width' : '1',
                                   'background-color': '#C6B476'
                               }
+                          },
+
+                          {
+                              selector: '.copy',
+                              "style" :{
+                                  'border-width' : '2',
+                                  'border-color': '#5EAAEF'
+                              }
+                              
+                          },
+
+                          {
+                              selector: '.model',
+                              style :{
+                                  'border-width' : '2',
+                                  'border-color': '#CE80A8'
+                              }
+                              
                           },
                           
                           {
