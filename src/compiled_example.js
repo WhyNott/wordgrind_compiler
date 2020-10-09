@@ -1,22 +1,31 @@
 //<<s of <0>> plus <s of <0>> equals ?X>
 //<?X plus <s of <0>> equals <s of <0>>>
 
-//Next step will be adding a plot for visualizing the bound variables as a directed graph
 
-let global_copy_counter = 0;
+
 
 let global_id_counter = 0;
 
 let all_terms = [];
 let backups = [];
 
-function reg_backup(name, term){
+function new_backup_frame(){
+    backups.push([]);
+}
 
-    backups.push({name:name, id:global_id_counter++, value:term.dereferenced_value().value});
+function reg_backup(term, index){
+    backups[backups.length-1].push({ data: { source: term.id,
+                                             label: index.toString(),
+                                             target: term.content().id
+                                           }, classes: "backup"});
+}
+
+function remove_backup_frame(){
+    backups.pop();
 }
 
 function reset_globals(){
-    global_copy_counter = 0;
+    
                                 
     global_id_counter = 0;      
                                 
@@ -29,9 +38,10 @@ let dc = null;
 function produce_nodes(){
     let nodes = [];
     let edges = [];
-    for (backup of backups){
-        nodes.push({data: {label: backup.name, id: backup.id}, classes: "backup"});
-        edges.push({ data: { source: backup.id, target: backup.value.id } });
+    for (backup_frame of backups){
+        for (backup of backup_frame){ 
+            edges.push(backup);
+        }
     }
     
     for (term of all_terms){
@@ -161,6 +171,15 @@ const term_prototype = {
             return true;
         }
     },
+
+    backup_value(){
+        if (this.is_variable() && this.value.is_copy()){
+            return this.id == this.value.copy_num ? this : this.value;
+        } else {
+            return this.value;
+        }
+
+    },
     
     dereferenced(){
         if (this.is_variable()) {
@@ -188,6 +207,14 @@ const term_prototype = {
         
     },
 
+
+    content(){
+        if (this.is_variable()){
+            return this.value;
+        } else {
+            return this;
+        }
+    },
     
     bind(sq){
         console.assert(this.is_variable());
@@ -203,7 +230,7 @@ const term_prototype = {
         if (this.is_variable()){
             const a = this.dereferenced();
             if (a.is_variable()){
-                const b = make_empty_variable(a.name, (global_copy_counter++));
+                const b = make_empty_variable(a.name, a.id);
                 a.value = b;
                 return b;
             } else {
@@ -211,7 +238,7 @@ const term_prototype = {
             }
         } else if (this.is_atom()) {
             const atom = make_atom(this.value);
-            atom.copy_num = (global_copy_counter++);
+            atom.copy_num = atom.id;
             return atom;
         } else {
             let new_args = [];
@@ -219,7 +246,7 @@ const term_prototype = {
                 new_args.push(val.copy());
             }
             const term = make_structured_term(this.value.functor, new_args);
-            term.copy_num = (global_copy_counter++);
+            term.copy_num = term.id;
             return term;
         }
         
@@ -376,6 +403,7 @@ function sentence_parse(string, index, v_map){
 //I think the reason has something to do with the head variables not resetting properly sometimes
 const predicates = {
     "{} plus {} equals {}": (head_0, head_1, head_2, index, cont_0) => {
+        new_backup_frame();
         const var_A  = make_empty_variable("?A" + (index == 1 ? "" : index));
         const var_B  = make_empty_variable("?B" + (index == 1 ? "" : index));
         const var_C  = make_empty_variable("?C" + (index == 1 ? "" : index)); 
@@ -385,7 +413,7 @@ const predicates = {
             if (var_A.unify_with(head_2)) {
                 dc.add_new_step(`?A = ${head_2.direct_name()}`);
                 next();
-            }
+            } 
         };
         const cont_2 = (next) => {
             if (head_1.unify_with(make_atom_model("0"))){
@@ -410,19 +438,19 @@ const predicates = {
             };
         };
 
-        const backup_var_A  = var_A.dereferenced_value().value;
-        const backup_var_B  = var_B.dereferenced_value().value; 
-        const backup_var_C  = var_C.dereferenced_value().value; 
-        const backup_head_0 = head_0.dereferenced_value().value; 
-        const backup_head_1 = head_1.dereferenced_value().value; 
-        const backup_head_2 = head_2.dereferenced_value().value; 
+        const backup_var_A  = var_A.backup_value();
+        const backup_var_B  = var_B.backup_value(); 
+        const backup_var_C  = var_C.backup_value(); 
+        const backup_head_0 = head_0.backup_value(); 
+        const backup_head_1 = head_1.backup_value(); 
+        const backup_head_2 = head_2.backup_value(); 
 
-        reg_backup(var_A.name, var_A); 
-        reg_backup(var_B.name, var_B); 
-        reg_backup(var_C.name, var_C); 
-        reg_backup("head_0" + (index == 1 ? "" : index), head_0); 
-        reg_backup("head_1" + (index == 1 ? "" : index), head_1); 
-        reg_backup("head_2" + (index == 1 ? "" : index), head_2); 
+        reg_backup(var_A, index); 
+        reg_backup(var_B, index); 
+        reg_backup(var_C, index); 
+        reg_backup(head_0, index); 
+        reg_backup(head_1, index); 
+        reg_backup(head_2, index); 
         
         if (var_A.unify_with(head_0)) {
             dc.add_new_step(`?A = ${head_0.direct_name()}`);
@@ -451,7 +479,8 @@ const predicates = {
         head_2.value = backup_head_2;
 
         dc.add_new_step("backup restored");
-      
+        remove_backup_frame();
+        
     },
 
 }
