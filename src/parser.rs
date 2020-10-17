@@ -85,13 +85,15 @@ pub struct Variable {
 
 impl fmt::Display for Variable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "?{}", self.variable_name)
+        write!(f, "?{}({})", self.variable_name, self.variable_id)
     }
 }
 
 impl PartialEq for Variable {
     fn eq(&self, other: &Self) -> bool {
         self.variable_id == other.variable_id
+            &&
+            self.variable_name == other.variable_name
     }
 }
 
@@ -99,10 +101,13 @@ impl Eq for Variable {}
 use std::cmp::Ordering;
 
 impl Ord for Variable {    
-
     fn cmp(&self, other: &Self) -> Ordering {
-        self.variable_id.cmp(&other.variable_id)
-            
+        let result = self.variable_id.cmp(&other.variable_id);
+        if result == Ordering::Equal {
+            self.variable_name.cmp(&other.variable_name)
+        } else {
+            result
+        }
     }
 }
 
@@ -379,28 +384,28 @@ pub fn consult_file(filename:&str) -> BTreeMap<(String, i32), (Clause, i32)>{
     
     
     clean_up_memory();
-    transform_map(&map)
+    join_clauses(&map)
 
   
 }
-//TODO: adjust the variable names so that you can tell what this function is supposed to do
-//also: "aggregate_clauses" would have been a much better name for this IMO
-fn transform_map(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMap<(String, i32), (Clause, i32)> {
-    let mut new_map : BTreeMap<(String, i32), (Clause, i32)> = BTreeMap::new();
-    for (key, value) in input.iter(){
-        if value.len() == 1 {
-            new_map.insert(key.clone(), value[0].clone());
+
+
+fn join_clauses(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMap<(String, i32), (Clause, i32)> {
+    let mut output_map : BTreeMap<(String, i32), (Clause, i32)> = BTreeMap::new();
+    for (name_arity, clauses) in input.iter(){
+        if clauses.len() == 1 {
+            output_map.insert(name_arity.clone(), clauses[0].clone());
         } else {
-            let (name, arity) = key;
+            let (name, arity) = name_arity;
             let mut highest = 0;
-            for (_, num) in value {
+            for (_, num) in clauses {
                 if highest < *num {
                     highest = *num;
                 }
             }
             let mut new_arguments = Vec::with_capacity(*arity as usize);
 
-            let context = value[0].0.context.clone();
+            let context = clauses[0].0.context.clone();
             
             for i in 0..*arity {
                 highest += 1;
@@ -421,9 +426,9 @@ fn transform_map(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMa
                 context: context.clone()
                             
             };
-            let mut new_clauses:Vec<LogicVerb> = Vec::with_capacity(value.len() as usize);
+            let mut new_clauses:Vec<LogicVerb> = Vec::with_capacity(clauses.len() as usize);
 
-            for (clause, _) in value{
+            for (clause, _) in clauses{
                 //produce sentences
                 let mut sentences = Vec::with_capacity(*arity as usize);
    
@@ -489,7 +494,7 @@ fn transform_map(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMa
                
             }
             
-            new_map.insert(key.clone(), (
+            output_map.insert(name_arity.clone(), (
                 Clause {
                     head: new_head,
                     body: Some(if new_clauses.len() == 1 {
@@ -504,7 +509,7 @@ fn transform_map(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMa
 
         }
     }
-    new_map
+    output_map
 }
 
 

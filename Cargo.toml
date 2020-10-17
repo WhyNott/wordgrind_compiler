@@ -14,3 +14,4 @@ cc = "1.0.59"
 
 [dependencies]
 indoc = "1.0"
+itertools = "0.7.11"

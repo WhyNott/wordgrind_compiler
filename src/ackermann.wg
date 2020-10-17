@@ -1,0 +1,22 @@
+(*
+<ackermann(<successor of <successor of <0>>>, <successor of <successor of <0>>>) = ?Result>
+
+*)
+<ackermann(<0>, ?N) = <successor of ?N>>
+
+<ackermann(<successor of ?M>, <0>) = ?Val> if 
+    <ackermann(?M, <successor of <0>>) = ?Val>
+(*okay, so for some weird reason both ?M and ?N get the same variable_id, which is 0*)
+
+<ackermann(<successor of ?M>, <successor of ?N>) = ?Val> if {
+    <ackermann(<successor of ?M>, ?N) = ?Val1> and
+    <ackermann(?M, ?Val1) = ?Val>
+}
+
+(*
+<<s of <0>> plus <s of <0>> equals ?X>
+<?X plus <s of <0>> equals <s of <0>>>
+*)
+<?A plus <0> equals ?A>
+<?A plus <s of ?B> equals <s of ?C>> if
+    <?A plus ?B equals ?C>

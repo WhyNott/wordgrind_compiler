@@ -303,6 +303,8 @@ pub mod variable_inits {
     }
     
     use std::collections::BTreeSet;
+    use itertools::Itertools;
+    
     pub fn process(input: (explicit_uni::Clause, i32)) -> (Clause, i32) {
         let (clause, num) = input;
         
@@ -313,7 +315,8 @@ pub mod variable_inits {
                 let mut gathered_variables = BTreeSet::new();
                 process_body(body, &mut gathered_variables);
                 
-                Some(gathered_variables.into_iter().collect())
+                Some(gathered_variables.into_iter().unique_by(|v| v.variable_name.clone()).collect())
+
                     
 
             }

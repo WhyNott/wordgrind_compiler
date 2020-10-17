@@ -12,7 +12,7 @@ use std::{
 
 fn main() {
     println!("Hello, world!");
-    let filename = "test_4.wg";
+    let filename = "family.wg";
     let file_results = parser::consult_file(filename);
 
     let write_file = File::create("compiled.js").unwrap();

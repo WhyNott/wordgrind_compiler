@@ -157,6 +157,7 @@ fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 }
 }
 
+
 fn emmit_procedure(f: &mut fmt::Formatter, proc : &ast::Procedure) -> fmt::Result {
     write!(f, "    ")?; write!(f, "'{}': (", proc.head.name)?;
     for arg in &proc.head.elements {
@@ -165,16 +166,17 @@ fn emmit_procedure(f: &mut fmt::Formatter, proc : &ast::Procedure) -> fmt::Resul
     
     writeln!(f, "index, cont_0) => {{")?;
     write!(f, "        ")?; writeln!(f, "new_backup_frame();")?;
-    
+
     for variable in &proc.variables {
         //no need to initialize function parameters
         if variable.is_head {
             continue;
         }
         
+        
         write!(f, "        ")?;
-        writeln!(f, "const var_{0}  = make_empty_variable('?{0}' + (index == 1 ? '' : index));",
-                 variable.variable_name)?;
+        writeln!(f, "const {0}  = make_empty_variable('?{1}' + (index == 1 ? '' : index));",
+                 JSVariable(variable.clone()), variable.variable_name)?;
     }
     write!(f, "        ")?;
     writeln!(f, "dc.add_new_step('<{}> Entry' + (index == 1 ? '' : index));", proc.head.name)?;
