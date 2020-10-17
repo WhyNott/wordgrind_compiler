@@ -109,11 +109,13 @@ pub mod explicit_uni {
             match element {
                 parser::Term::Sentence(s) => {
                     varset += 1;
+                    //TODO: would be a good idea to mark the head variables somehow at this stage
                     let new_variable = parser::Variable {
                         variable_name: "head_".to_owned() + &varset.to_string(),
                         
                         variable_id: varset,
-                        context: s.context.clone()
+                        context: s.context.clone(),
+                        is_head: true
                     };
                     new_body.push(LogicVerb::Structure(new_variable.clone(), s));
                     head_variables.push(new_variable);
@@ -185,13 +187,15 @@ pub mod explicit_uni {
                             let new_variable1 = parser::Variable {
                                 variable_name: varset.to_string(),
                                 variable_id: *varset,
-                                context: x.context.clone()
+                                context: x.context.clone(),
+                                is_head: false
                             };
                             *varset += 1;
                             let new_variable2 = parser::Variable {
                                 variable_name: varset.to_string(),
                                 variable_id: *varset,
-                                context: y.context.clone()
+                                context: y.context.clone(),
+                                is_head: false
                             };
                             output.push(LogicVerb::Structure(new_variable1.clone(), x));
                             output.push(LogicVerb::Structure(new_variable2.clone(), y));
@@ -217,7 +221,8 @@ pub mod explicit_uni {
                                 let new_variable = parser::Variable {
                                     variable_name: varset.to_string(),
                                     variable_id: *varset,
-                                    context: s.context.clone()
+                                    context: s.context.clone(),
+                                    is_head: false
                                 };
                                 new_arguments.push(new_variable.clone());
                                 output.push(LogicVerb::Structure(new_variable, s));
@@ -397,7 +402,7 @@ pub mod emission {
     
     //and means going in nested depth - either continuations or conditions
     //or means going in broadness
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum Semidet {
         Unify(parser::Variable, parser::Variable),
         Structure(parser::Variable, parser::Sentence)
@@ -421,12 +426,13 @@ pub mod emission {
     }
 
     
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum EmissionVerb {
         Cond(Semidet, i32),
         Or(Vec<EmissionVerb>),
         Call(explicit_uni::Sentence, i32)
     }
+  
 
 
    

@@ -2,14 +2,23 @@
 pub mod parser;
 
 
-
 mod rewrite_passes;
+mod js_emission;
 
+use std::{
+    fs::File,
+    io::{BufWriter, Write},
+};
 
 fn main() {
     println!("Hello, world!");
-    let filename = "add.wg";
+    let filename = "test_4.wg";
     let file_results = parser::consult_file(filename);
+
+    let write_file = File::create("compiled.js").unwrap();
+    let mut writer = BufWriter::new(&write_file);
+
+    writeln!(&mut writer, "const predicates = {{");
     for (key, value) in file_results.into_iter(){
         let (name, arity) = key;
         println!("{}/{}:", name, arity);
@@ -32,13 +41,16 @@ fn main() {
 
         }
         println!("]");
-        println!("{}",  rewrite_passes::emission::process(extracted));
-        
+        let emission = rewrite_passes::emission::process(extracted);
+        println!("{}",  emission);
+        js_emission::write_procedure(&mut writer, emission);
+       
     }
+
+    writeln!(&mut writer, "}}");
+    writer.flush().unwrap();
     
 }
-
-
 
 
 

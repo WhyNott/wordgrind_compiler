@@ -77,9 +77,10 @@ impl fmt::Display for Sentence {
     
 #[derive(Debug,  Clone)]    
 pub struct Variable {
-        pub variable_name: String,
-        pub variable_id: i32,
-        pub context: Box::<Context>       
+    pub variable_name: String,
+    pub variable_id: i32,
+    pub context: Box::<Context>,
+    pub is_head: bool
 }
 
 impl fmt::Display for Variable {
@@ -170,7 +171,7 @@ pub fn rustify_sentence(sentence: *const parser_c::Sentence, varset: &mut BTreeM
 
        
         //println!("{}", variable_id);
-        Term::Variable(Variable {variable_name, variable_id, context})
+        Term::Variable(Variable {variable_name, variable_id, context, is_head: false})
 
       
     } else {
@@ -408,7 +409,8 @@ fn transform_map(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMa
                         variable_name: "head_".to_owned() + &i.to_string(),
                         
                         variable_id: highest,
-                        context: context.clone()
+                        context: context.clone(),
+                        is_head: true
   
                     }));
                 

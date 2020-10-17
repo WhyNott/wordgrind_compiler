@@ -1,11 +1,11 @@
-(* hi, this is a comment! *)
 
+(* TODO: variable redeclaration error in ackermann *)
+
+(*
 <ackermann(<0>, ?N) = <successor of ?N>>
 
 <ackermann(<successor of ?M>, <0>) = ?Val> if 
     <ackermann(?M, <successor of <0>>) = ?Val>
-
-(* I'm impressed how easy comments were to implement - compared to writing a custom tokenizer in prolog... *)
 
 (* a (* miliion (* nested (*comments *) one *) inside *) another*)
 (* a (* miliion (* nested (*comments *) one *) inside *) another*)
@@ -15,6 +15,7 @@
     <ackermann(<successor of ?M>, ?N) = ?Val1> and
     <ackermann(?M, ?Val1) = ?Val>
 }
+*)
 
 (* a (* miliion (* nested (*comments *) one *) inside *) another*)
 (* a (* miliion (* nested (*comments *) one *) inside *) another*)
@@ -33,6 +34,9 @@
 <<leicester square> is connected to <charing cross> by <northern> line>
 
 
+(* A triple (!) variable  redeclaration here *) 
+
+(*
 <?X is a polynomial in ?X>
 <?Term is a polynomial in ?X> if
        <?Term is constant>
@@ -111,9 +115,11 @@
     <?ArgX unifies with ?ArgY>
 }
 
+*)
 
-
-
+<?A plus <0> equals ?A>
+<?A plus <s of ?B> equals <s of ?C>> if
+    <?A plus ?B equals ?C>
 
 
 

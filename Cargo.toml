@@ -13,3 +13,4 @@ bindgen = "0.54.1"
 cc = "1.0.59"
 
 [dependencies]
+indoc = "1.0"
