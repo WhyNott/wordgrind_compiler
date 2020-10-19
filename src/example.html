@@ -10,8 +10,8 @@
     <div style="display: flex; justify-content: space-evenly">
     <div>
         <input type="text" id="input" style="width: 20em;"> <input type="submit" onclick="run_query()" value="Run query"></br>
-        <textarea id="output" rows="32" cols="50" disabled="true"></textarea>
-         
+        </textarea>
+         <div id="output" style="width: 30em;border-width: 1px;border-style: solid;min-height: 50rem; padding-left: 0.5em;margin-top: 1rem;"></div>
          
         <script>
           function run_query(){
@@ -19,7 +19,9 @@
               const output = document.getElementById("output");
 
               const out_pipe = (str) => {
-                  output.appendChild(document.createTextNode(str + "\n"));
+                  let p = document.createElement("p");
+                  p.appendChild(document.createTextNode(str + "\n"));
+                  output.appendChild(p);
               };
               dc.clear();
               try {

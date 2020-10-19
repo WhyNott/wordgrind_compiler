@@ -314,7 +314,6 @@ pub mod variable_inits {
             Some(body) => {
                 let mut gathered_variables = BTreeSet::new();
                 process_body(body, &mut gathered_variables);
-                
                 Some(gathered_variables.into_iter().unique_by(|v| v.variable_name.clone()).collect())
 
                     
@@ -327,6 +326,18 @@ pub mod variable_inits {
             
 
             
+        
+    }
+
+    fn process_sentence(input: &parser::Sentence, varset:&mut BTreeSet<parser::Variable>){
+        for element in &input.elements {
+            match element{
+                parser::Term::Sentence(s) => process_sentence(&s, varset),
+                parser::Term::Variable(v) => {varset.insert(v.clone());}
+                
+            }
+
+        }
         
     }
     
@@ -351,8 +362,9 @@ pub mod variable_inits {
                 varset.insert(v1.clone());
                 varset.insert(v2.clone());
             }
-            LogicVerb::Structure(v, _) => {
+            LogicVerb::Structure(v, s) => {
                 varset.insert(v.clone());
+                process_sentence(s, varset);
             }
             
                 

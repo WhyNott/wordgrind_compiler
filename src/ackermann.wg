@@ -1,6 +1,10 @@
 (*
 <ackermann(<successor of <successor of <0>>>, <successor of <successor of <0>>>) = ?Result>
 
+<ackermann(<successor of <successor of <successor of <0>>>>, <successor of <successor of <0>>>) = ?Result>
+
+<ackermann(<successor of <successor of <successor of <0>>>>, <successor of <successor of <successor of <0>>>>) = ?Result>
+
 *)
 <ackermann(<0>, ?N) = <successor of ?N>>
 

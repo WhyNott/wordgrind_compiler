@@ -12,7 +12,7 @@ use std::{
 
 fn main() {
     println!("Hello, world!");
-    let filename = "family.wg";
+    let filename = "pseudolists.wg";
     let file_results = parser::consult_file(filename);
 
     let write_file = File::create("compiled.js").unwrap();
@@ -30,6 +30,8 @@ fn main() {
         
         let (extracted, _) = rewrite_passes::variable_inits::process((explicit, num));
 
+        println!("Variable init:\n {}", extracted);
+        
         match &extracted.variables{
             None => {},
             Some(vars) => {

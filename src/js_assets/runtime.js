@@ -348,6 +348,7 @@ function query(string, out_pipe){
         Object.keys(v_map.map_data).forEach(function(key,index) {
             out_pipe(key+" = " + v_map.map_data[key].pprint());
         });
+        out_pipe("true");
     };
 
 
