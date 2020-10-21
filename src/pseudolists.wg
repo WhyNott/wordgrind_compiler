@@ -5,8 +5,13 @@
 <<?X ?Xs> is a list> if
          <?Xs is a list>
 
-(*<?X is a member of <<A> <<B> <<C> <<D> <>>>>>> *)
+(*<?M is a member of <<A> <<B> <<C> <<D> <>>>>>> *)
 (*hmm, for some reason it doesn't give any results past B. Suspicious*)
 <?X is a member of <?X ?Xs>>
 <?X is a member of <?Y ?Ys>> if
     <?X is a member of ?Ys>
+
+
+<p of ?X> if <q of ?X in ?Y>
+<q of ?V in ?U> if <r of ?U in ?V>
+<r of ?Z in <b>>

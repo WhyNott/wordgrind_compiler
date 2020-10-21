@@ -2,9 +2,11 @@ use crate::rewrite_passes::emission as ast;
 use std::fmt;
 
 use std::{
-    fs::File,
-    io::{BufWriter, Write},
+    result::Result,
+    io::{Write},
 };
+
+
 
 
 //this whole thing is MASSIVELY stupid
@@ -26,6 +28,7 @@ pub fn print_procedure(proc : ast::Procedure){
 pub fn write_procedure( f : &mut std::io::BufWriter<&std::fs::File>, proc : ast::Procedure){
     writeln!(f,"{}", JSProcedure(proc));
 }
+
 
 
 
@@ -101,6 +104,8 @@ fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                       {0:i$}    if ({2}.unify_with(model)){{
                       {0:i$}        dc.add_new_step(`${{{2}.direct_name()}} = ${{model_name}}`);
                       {0:i$}        cont_{3}();
+                      {0:i$}    }} else {{
+                      {0:i$}        dc.add_new_step(`Failed: ${{{2}.dereferenced_value().direct_name()}} = ${{model_name}}`);
                       {0:i$}    }}
                       {0:i$}}}
                       ", "", JSSentence(sent.clone()), JSVariable(x.clone()),
@@ -112,6 +117,8 @@ fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                       {0:i$}if ({1}.unify_with({2})){{
                       {0:i$}    dc.add_new_step(`${{{1}.direct_name()}} = ${{{2}.direct_name()}}`);
                       {0:i$}    cont_{3}();
+                      {0:i$}}} else {{
+                      {0:i$}    dc.add_new_step(`Failed: ${{{2}.dereferenced_value().direct_name()}} = ${{{2}.dereferenced_value().direct_name()}}`);
                       {0:i$}}}
                       ", "", JSVariable(a.clone()), JSVariable(b.clone()), num, i=indent)
                 }
@@ -122,10 +129,13 @@ fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
         ast::EmissionVerb::Or(clauses) => {
             for variable in variables {
+                if variable.is_head {
+                        continue;
+                }
                 writeln!(f, "{0:i$}const backup_{1} = {1}.backup_value(); reg_backup({1}, index);",
                          "", JSVariable(variable.clone()), i=indent)?;
             }
-            writeln!(f)?;
+            writeln!(f,"{0:i$}trail.new_choice_point();", "", i=indent)?;
             
             for clause in clauses{    
                 writeln!(f, "\n{}",
@@ -133,12 +143,16 @@ fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 
                 
                 for variable in variables {
+                    if variable.is_head {
+                        continue;
+                    }
                     writeln!(f, "{0:i$}{1}.value = backup_{1};",
                          "", JSVariable(variable.clone()), i=indent)?;
                 }
+                writeln!(f,"{0:i$}trail.restore_choice_point();", "", i=indent)?;
                 writeln!(f, "{0:i$}dc.add_new_step('backup restored');", "", i=indent)?;
             }
-            Ok(())
+            writeln!(f,"{0:i$}trail.remove_choice_point();", "", i=indent)
               
 
         },

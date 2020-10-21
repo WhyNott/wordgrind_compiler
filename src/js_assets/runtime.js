@@ -24,6 +24,31 @@ function remove_backup_frame(){
     backups.pop();
 }
 
+const trail = {
+    stack : [],
+    last_choice_point : [],
+    last_id_counter : [],
+    new_choice_point(){
+        this.last_choice_point.push(this.stack.length);
+        this.last_id_counter.push(global_id_counter);
+    },
+    add_postbinding(p){
+        this.stack.push(p);
+    },
+    restore_choice_point(){
+        const oldtop = this.last_choice_point[this.last_choice_point.length-1];
+        for (let top = this.stack.length; top != oldtop; top--){
+            let v = this.stack.pop();
+            v.value = v;
+        } 
+    },
+    remove_choice_point(){
+        this.last_choice_point.pop();
+        this.last_id_counter.pop();
+    }
+};
+
+
 function reset_globals(){
     
                                 
@@ -218,7 +243,25 @@ const term_prototype = {
     
     bind(sq){
         console.assert(this.is_variable());
-        if (sq.is_model()){
+        console.assert(!this.bound());
+        if (this.id < trail.last_id_counter[trail.last_id_counter.length-1]){
+            trail.add_postbinding(this);
+        }
+        
+        //L1 binding
+        if (sq.is_atom()){
+            this.value = sq;
+        } 
+        //L2 binding
+        else if (sq.is_variable() && !sq.bound()){
+            if (this.id < sq.id){ //this is older then sq
+                sq.value = this.copy();
+            } else {
+                this.value = sq.copy();
+            }            
+        } 
+        //L3 binding
+        else if (sq.is_model()){
             this.value = sq.copy();
         } else {
             this.value = sq;
@@ -227,19 +270,17 @@ const term_prototype = {
     },
     
     copy(){
-        if (this.is_variable()){
+        if (this.is_atom()){
+            return this;
+        } else if (this.is_variable()){
             const a = this.dereferenced();
-            if (a.is_variable()){
+            if (a.is_variable() && !a.bound()){
                 const b = make_empty_variable(a.name, a.id);
-                a.value = b;
+                 b.value = a;
                 return b;
             } else {
                 return a;
             }
-        } else if (this.is_atom()) {
-            const atom = make_atom(this.value);
-            atom.copy_num = atom.id;
-            return atom;
         } else {
             let new_args = [];
             for (val of this.value.args){
