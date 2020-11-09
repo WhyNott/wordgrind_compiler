@@ -1,0 +1,183 @@
+//deck object
+const decks = {
+    deck_1 : {
+        //now that I think about it, I don't think priority field is actually neccessary - just put items in a list in the priority order
+        //while we're at it, why not allow priority for choices as well? 
+        early_actions: [
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;
+                //match each precondition with an item in db
+                DB.match(/* nth precondition here */);
+                //...
+                name.unify_with(/* model of the name goes here */);
+                description.unify_with(/* model of the description goes here */);
+                effect.unify_with(make_structured_term("", [
+                    /* models of each effect go here */
+                ]));
+                next_deck.unify_with(/* model of the next deck goes here */);
+                /* here goes logic */
+            },         
+        ],
+        choices: [...],
+        late_actions: [...] 
+    },
+    deck_2 : {
+        ...
+    }
+}
+
+
+
+
+let deck_stack = [];
+
+let current_deck = {deck: "default", pre_choice:true};
+
+let available_choices = [];
+
+
+
+function find_choices(){
+    const deck = decks[current_deck.deck];
+        
+    const name        = make_empty_variable("name"); 
+    const description = make_empty_variable("description"); 
+    const effects     = make_empty_variable("effects"); 
+    const next_deck   = make_empty_variable("next_deck");
+
+    let choices = [];
+    
+    const cont = () => {
+        let found_choice = {};
+        found_choice.name = name.pprint(bracketed = false);
+        found_choice.description = description.pprint(bracketed = false);
+        found_choice.effects = effects.value.args;
+        found_choice.next_deck = next_deck.bound() ? next_deck.value.value : null;
+        choices.push(found_choice);
+    };
+
+    trail.new_choice_point();
+    for (possible_choice of deck.choices) {
+        possible_choice(name, description, effects, next_deck, cont);
+        trail.restore_choice_point();
+    }
+    trail.remove_choice_point();
+
+    return choices;
+}
+
+
+
+function choose_action(late){
+    const deck = decks[current_deck.deck];
+    const actions = late ? deck.early_actions : deck.late_actions;
+    
+    const name        = make_empty_variable("name"); 
+    const description = make_empty_variable("description"); 
+    const effects     = make_empty_variable("effects"); 
+    const next_deck   = make_empty_variable("next_deck");
+
+    let found_suitable = false;
+    let chosen_action = {};
+    
+    const cont = () => {
+        if (!found_suitable){
+            found_suitable = true;
+            chosen_action.name = name.pprint(bracketed = false);
+            chosen_action.description = description.pprint(bracketed = false);
+            chosen_action.effects = effects.value.args;
+            chosen_action.next_deck = next_deck.bound() ? next_deck.value.value : null;
+        }
+    };
+
+    trail.new_choice_point();
+    for (action of actions) {
+        if (found_suitable)
+            break;
+        action(name, description, effects, next_deck, cont);
+        trail.restore_choice_point();
+    }
+    trail.remove_choice_point();
+
+    return found_suitable ? chosen_action : null;
+}
+
+
+const STATES = {
+    POP:0,
+    PUSH:1,
+    LATE:2,
+    EARLY:3
+};
+
+function make_choice(n){
+    
+    let current_element = available_choices[n];
+    let state;
+    if (current_element.next_deck === null) {
+        state = STATES.LATE;
+    } else {
+        state = STATES.PUSH;
+    }
+    current_deck.pre_choice = false;
+    while(true){
+        
+        if state == STATES.LATE {
+        //code for executing late action 
+            let action = choose_action(late=true);
+            if action === null {
+                state = STATES.POP;
+            } else {
+                current_element = action;
+                apply_element(current_element);
+                if current_element.next_deck === null {
+                    state = STATES.LATE;
+                } else {
+                    current_deck.pre_choice = false;
+                    state = STATES.PUSH;
+                }
+            }
+        } else if state == STATES.EARLY {
+            //code for executing early action
+            let action = choose_action(late=false);
+            if (action === null) {
+                available_choices = find_choices();
+                return;
+            } else {
+                current_element = action;
+                apply_element(current_element);
+                if (current_element.next_deck === null ){
+                    state = STATES.EARLY;
+                } else {
+                    current_deck.pre_choice = true;
+                    state = STATES.PUSH;
+                }
+            }
+            
+        } else if state == STATES.POP {
+            //code for popping a deck from stack
+            if (deck_stack.length() > 0)
+                current_deck = deck_stack.pop();
+            else
+                current_deck = {deck: "default", pre_choice:true};
+
+            if (current_deck.pre_choice)
+                state = STATES.EARLY;
+            else
+                state = STATES.LATE;
+            
+        } else if state == STATES.PUSH {
+            //code for pushing current to the stack and seting lead as current deck
+            if (current_deck != "default") {
+                deck_stack.push(current_deck);
+            }
+            current_deck = {deck: current_element.next_deck, pre_choice:current_deck.pre_choice};
+            
+        } else {
+            //throw an error here
+            throw "Invalid state value!"
+        }
+
+    }
+
+}

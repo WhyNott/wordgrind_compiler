@@ -1,0 +1,87 @@
+(* Things you can do in this demo:
+
++ walk between two rooms
++ pick up an item and drop it (in any room)
++ use a computer in one of the rooms
+
++ on the computer you can:
+  + play a game
+  + browse the internet
+  + chat with a friend
+
++ while chatting with a friend, you can:
+  + ask to hang out
+  + argue about politics
+  + send a meme
+*)
+
+<<Kitchen> is a room>
+<<Living room> is a room>
+
+
+
+Initial state is
+        <Player is in <Kitchen>> and
+        <<Knife> is in <Kitchen>> 
+        displays <Deck demo engaged.>
+
+Choice <Walk from ?A to ?B.>
+       available when
+                   <Player is in ?A>
+       such that 
+                {<?B is a room> and <?A is a room> and <?A is not ?B>}
+       displays
+               <You walk from ?A to ?B. You are now in ?B.>
+       causes
+             <Player is in ?B> and removes <Player is in ?A>
+
+
+
+Choice <Pick up ?Item.>
+       available when
+                 <Player is in ?Place> and <?Item is in ?Place>
+       such that
+                <?Followup is the followup text for ?Item>
+       displays
+                <You have successfully picked up ?Item. ?Followup>
+       causes
+                <Player has ?Item> and removes <?Item is in ?Place>
+
+
+
+Choice <Drop ?Item.>
+       available when
+                 <Player is in ?Place> and <Player has ?Item>
+       displays
+                <You have dropped ?Item.>
+       causes
+                <?Item is in ?Place>
+                and removes <Player has ?Item>
+
+Choice <Use computer.>
+       available when
+                 <Player is in <Living Room>>
+       leads into
+                 <Computer>
+
+
+In <Computer>
+
+Early action <Things appear on the monitor.> displays <Things appear on the monitor.>
+
+Choice <Play game.> displays <You play a video game.>
+
+Choice <Browse the internet.> displays <You spend some time aimlessly wandering on the internet.>
+
+Choice <Chat with a friend.> displays <You start up the chat client.> leads to <Chat>       
+
+End <Computer>
+
+
+In <Chat>
+   Choice <Ask to hang out.>
+   Choice <Argue about politics.>
+   Choice <Send a meme.>
+
+   Action <Lol> displays <Your friend says 'LOL'.>
+End <Chat>
