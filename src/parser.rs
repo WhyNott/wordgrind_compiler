@@ -384,60 +384,58 @@ pub fn consult_file(filename:&str) -> BTreeMap<(String, i32), (Clause, i32)>{
     
     
     clean_up_memory();
-    join_clauses(&map)
+    join_clauses_of_same_predicate(&map)
 
   
 }
 
-
-fn join_clauses(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMap<(String, i32), (Clause, i32)> {
-    let mut output_map : BTreeMap<(String, i32), (Clause, i32)> = BTreeMap::new();
-    for (name_arity, clauses) in input.iter(){
-        if clauses.len() == 1 {
-            output_map.insert(name_arity.clone(), clauses[0].clone());
+fn join_clauses_of_same_predicate(separate_clauses_by_predicate: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMap<(String, i32), (Clause, i32)> {
+    let mut joined_clause_by_predicate : BTreeMap<(String, i32), (Clause, i32)> = BTreeMap::new();
+    for (pred_id, separate_clauses) in separate_clauses_by_predicate.iter(){
+        if separate_clauses.len() == 1 {
+            joined_clause_by_predicate.insert(pred_id.clone(), separate_clauses[0].clone());
         } else {
-            let (name, arity) = name_arity;
-            let mut highest = 0;
-            for (_, num) in clauses {
-                if highest < *num {
-                    highest = *num;
+            let (name, arity) = pred_id;
+            let mut highest_varset = 0;
+            for (_, varset) in separate_clauses {
+                if highest_varset < *varset {
+                    highest_varset = *varset;
                 }
             }
-            let mut new_arguments = Vec::with_capacity(*arity as usize);
+            let mut joined_clause_head_args = Vec::with_capacity(*arity as usize);
 
-            let context = clauses[0].0.context.clone();
+            let joined_clause_context = separate_clauses[0].0.context.clone();
             
             for i in 0..*arity {
-                highest += 1;
-                new_arguments.push(
+                highest_varset += 1;
+                joined_clause_head_args.push(
                     Term::Variable(Variable {
                         variable_name: "head_".to_owned() + &i.to_string(),
                         
-                        variable_id: highest,
-                        context: context.clone(),
+                        variable_id: highest_varset,
+                        context: joined_clause_context.clone(),
                         is_head: true
   
                     }));
                 
             }
-            let new_head = Sentence {
+            let joined_head = Sentence {
                 name: name.to_string(),
-                elements: new_arguments.clone(),
-                context: context.clone()
-                            
+                elements: joined_clause_head_args.clone(),
+                context: joined_clause_context.clone()                           
             };
-            let mut new_clauses:Vec<LogicVerb> = Vec::with_capacity(clauses.len() as usize);
-
-            for (clause, _) in clauses{
-                //produce sentences
-                let mut sentences = Vec::with_capacity(*arity as usize);
+            let mut disjunction:Vec<LogicVerb> = Vec::with_capacity(separate_clauses.len() as usize);
+            
+            for (clause, _) in separate_clauses{
+                
+                let mut clause_as_disjunct = Vec::with_capacity(*arity as usize);
    
-                for (arg, new_arg) in clause.head.elements.iter().zip(new_arguments.iter()) {
-                    sentences.push(LogicVerb::Sentence(
+                for (head_arg, joined_head_arg) in clause.head.elements.iter().zip(joined_clause_head_args.iter()) {
+                    clause_as_disjunct.push(LogicVerb::Sentence(
                         Sentence {
                             name: "{} = {}".to_string(),
-                            elements: vec![arg.clone(), new_arg.clone()],
-                            context: match arg {
+                            elements: vec![head_arg.clone(), joined_head_arg.clone()],
+                            context: match head_arg {
                                 Term::Sentence(Sentence {context, ..}) => context.clone(),
                                 Term::Variable(Variable {context, ..}) => context.clone(),
                             }
@@ -447,24 +445,25 @@ fn join_clauses(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMap
                     
                         
                 }
+
                 
             
                 match &clause.body {
                     Some(lv) => {
                         match lv {
                             LogicVerb::Sentence(s) => {
-                                sentences.push(LogicVerb::Sentence(s.clone()));
-                                new_clauses.push(LogicVerb::And(sentences));                     
+                                clause_as_disjunct.push(LogicVerb::Sentence(s.clone()));
+                                disjunction.push(LogicVerb::And(clause_as_disjunct));                     
                             },
                             LogicVerb::And(and) => {
-                                sentences.append(&mut and.clone());
+                                clause_as_disjunct.append(&mut and.clone());
                                 
-                                new_clauses.push(LogicVerb::And(sentences));
+                                disjunction.push(LogicVerb::And(clause_as_disjunct));
                                 
                             },
                             LogicVerb::Or(or) => {
-                                sentences.push(LogicVerb::Or(or.clone()));
-                                new_clauses.push(LogicVerb::And(sentences));                     
+                                clause_as_disjunct.push(LogicVerb::Or(or.clone()));
+                                disjunction.push(LogicVerb::And(clause_as_disjunct));                     
                             },
 
                            
@@ -474,11 +473,11 @@ fn join_clauses(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMap
                         
                     },
                     None => {
-                        if !sentences.is_empty() { //some weird edge case I guess?
-                            new_clauses.push(if sentences.len() == 1 {
-                                sentences.into_iter().next().expect("Sentence is empty")
+                        if !clause_as_disjunct.is_empty() { //some weird edge case I guess?
+                            disjunction.push(if clause_as_disjunct.len() == 1 {
+                                clause_as_disjunct.into_iter().next().expect("Disjunct is empty")
                             } else {
-                                LogicVerb::And(sentences)
+                                LogicVerb::And(clause_as_disjunct)
                             });
                             
                         } else {
@@ -494,23 +493,23 @@ fn join_clauses(input: &BTreeMap<(String, i32), Vec<(Clause, i32)>>) -> BTreeMap
                
             }
             
-            output_map.insert(name_arity.clone(), (
+            joined_clause_by_predicate.insert(pred_id.clone(), (
                 Clause {
-                    head: new_head,
-                    body: Some(if new_clauses.len() == 1 {
-                        new_clauses.into_iter().next().expect("new_clauses is empty")
-
+                    head: joined_head,
+                    body: Some(if disjunction.len() == 1 {
+                        disjunction.into_iter().next().expect("disjunction is empty")
                             
                     } else {
-                        LogicVerb::Or(new_clauses)
+                        LogicVerb::Or(disjunction)
                     }),
-                    context
-                }, highest));
+                    context: joined_clause_context
+                }, highest_varset));
 
         }
     }
-    output_map
+    joined_clause_by_predicate
 }
+
 
 
 
