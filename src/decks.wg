@@ -67,13 +67,13 @@ Choice <Use computer.>
 
 In <Computer>
 
-Early action <Things appear on the monitor.> displays <Things appear on the monitor.>
+   Early action <Things appear on the monitor.> displays <Things appear on the monitor.>
 
-Choice <Play game.> displays <You play a video game.>
+   Choice <Play game.> displays <You play a video game.>
 
-Choice <Browse the internet.> displays <You spend some time aimlessly wandering on the internet.>
+   Choice <Browse the internet.> displays <You spend some time aimlessly wandering on the internet.>
 
-Choice <Chat with a friend.> displays <You start up the chat client.> leads to <Chat>       
+   Choice <Chat with a friend.> displays <You start up the chat client.> leads to <Chat>       
 
 End <Computer>
 

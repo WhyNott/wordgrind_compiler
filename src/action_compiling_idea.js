@@ -8,6 +8,7 @@ const decks = {
                 const index = 0;
                 //match each precondition with an item in db
                 DB.match(/* nth precondition here */);
+                
                 //...
                 name.unify_with(/* model of the name goes here */);
                 description.unify_with(/* model of the description goes here */);
@@ -16,7 +17,8 @@ const decks = {
                 ]));
                 next_deck.unify_with(/* model of the next deck goes here */);
                 /* here goes logic */
-            },         
+            },
+                     
         ],
         choices: [...],
         late_actions: [...] 
@@ -24,6 +26,78 @@ const decks = {
     deck_2 : {
         ...
     }
+}
+
+
+const decks = {
+    'default' : {
+        early_actions: [],
+        choices: [
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;
+                const var_A = make_empty_variable('?A' + (index == 1 ? '' : index));
+                const var_B = make_empty_variable('?B' + (index == 1 ? '' : index));
+                
+                
+                DB.match(make_structured_term("Player is in {}", [var_A]));
+                
+                name.unify_with(make_structured_term("Walk from {} to {}", [var_A, var_B]));
+                description.unify_with(make_structured_term("You walk from {} to {}. You are now in {}.", [var_A, var_B, var_B]));
+                effect.unify_with(make_structured_term("", [
+                    make_structured_term("Player is in {}", [var_B]),
+                    make_structured_term("removes", [
+                        make_structured_term("Player is in {}", [var_A]),
+                    ]),
+                ]))
+                
+                new_backup_frame();
+                
+                dc.add_new_step('<Walk from ?A to ?B.> condition' + (index == 1 ? '' : index));
+                
+                const cont_1 = () => {
+                    predicates['{} is not {}'](var_A, var_B, index + 1, cont_0);
+                    
+                };
+                const cont_2 = () => {
+                    predicates['{} is a room'](var_A, index + 1, cont_1);
+                    
+                };
+                predicates['{} is a room'](var_B, index + 1, cont_2);
+                
+                remove_backup_frame();
+
+                                       
+            },
+
+            
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;
+                //match each precondition with an item in db
+                DB.match(/* nth precondition here */);
+                
+                //...
+                name.unify_with(/* model of the name goes here */);
+                description.unify_with(/* model of the description goes here */);
+                effect.unify_with(make_structured_term("", [
+                    /* models of each effect go here */
+                ]));
+                next_deck.unify_with(/* model of the next deck goes here */);
+                /* here goes logic */
+            },
+
+        ],
+        late_actions: [] 
+    },
+    'Computer' : {
+        early_actions: [],
+        choices: [],
+        late_actions: [] 
+    },
+    'Chat' : {
+        early_actions: [],
+        choices: [],
+        late_actions: [] 
+    },
 }
 
 
