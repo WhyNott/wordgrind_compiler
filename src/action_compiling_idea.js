@@ -28,6 +28,9 @@ const decks = {
     }
 }
 
+//todo:
+//DB match kind of doesnt make sense right now
+//next deck field should go to the same one in a lot of cases
 
 const decks = {
     'default' : {
@@ -48,7 +51,7 @@ const decks = {
                     make_structured_term("removes", [
                         make_structured_term("Player is in {}", [var_A]),
                     ]),
-                ]))
+                ]));
                 
                 new_backup_frame();
                 
@@ -72,16 +75,59 @@ const decks = {
             
             (name, description, effects, next_deck, cont) => {
                 const index = 0;
+                const var_Item = make_empty_variable('?Item' + (index == 1 ? '' : index));
+                const var_Place = make_empty_variable('?Place' + (index == 1 ? '' : index));
+                const var_Followup = make_empty_variable('?Followup' + (index == 1 ? '' : index));
                 //match each precondition with an item in db
-                DB.match(/* nth precondition here */);
-                
-                //...
-                name.unify_with(/* model of the name goes here */);
-                description.unify_with(/* model of the description goes here */);
+                DB.match(make_structured_term("Player is in {}", [var_Place]));
+                DB.match(make_structured_term("{} is in {}", [var_Item, var_Place]));
+                                
+       
+                name.unify_with(make_structured_term("Pick up {}.", [var_Item]));
+                description.unify_with(make_structured_term("You have successfully picked up {}.", [var_Item]));
                 effect.unify_with(make_structured_term("", [
-                    /* models of each effect go here */
+                    make_structured_term("Player has {}", [var_Item]),
+                    make_structured_term("removes", [
+                        make_structured_term("{} is in {}", [var_Item, var_Place]),
+                    ]),
                 ]));
-                next_deck.unify_with(/* model of the next deck goes here */);
+   
+                /* here goes logic */
+
+                new_backup_frame();
+                dc.add_new_step('<Pick up ?Item.> condition' + (index == 1 ? '' : index));
+                predicates['{} is the followup text for {}'](var_Followup, var_Item, index + 1, cont);
+                
+                remove_backup_frame();
+            },
+
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;
+                const var_Item = make_empty_variable('?Item' + (index == 1 ? '' : index));
+                const var_Place = make_empty_variable('?Place' + (index == 1 ? '' : index));
+                //match each precondition with an item in db
+                DB.match(make_structured_term("Player is in {}", [var_Place]));
+                DB.match(make_structured_term("Player has {}", [var_Item]));
+                                
+       
+                name.unify_with(make_structured_term("Drop {}.", [var_Item]));
+                description.unify_with(make_structured_term("You have dropped {}.", [var_Item]));
+                effect.unify_with(make_structured_term("", [
+                    make_structured_term("{} is in {}", [var_Item, var_Place]),
+                    make_structured_term("removes", [
+                        make_structured_term("Player has {}", [var_Item]),
+                    ]),
+                ]));
+            },
+            
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;
+                //match each precondition with an item in db
+                DB.match(make_structured_term("Player is in {}", [make_atom("Living Room")]));
+                
+
+                name.unify_with(make_atom("Use computer."));
+                next_deck.unify_with(make_atom("Computer"));
                 /* here goes logic */
             },
 
@@ -89,14 +135,57 @@ const decks = {
         late_actions: [] 
     },
     'Computer' : {
-        early_actions: [],
-        choices: [],
+        early_actions: [
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;           
+                name.unify_with(make_atom("Things appear on the monitor."));
+                description.unify_with(make_atom("Things appear on the monitor."));
+            },
+        ],
+        choices: [
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;           
+                name.unify_with(make_atom("Play game."));
+                description.unify_with(make_atom("You play a video game."));
+            },
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;           
+                name.unify_with(make_atom("Browse the internet."));
+                description.unify_with(make_atom("You spend some time aimlessly wandering on the internet."));
+            },
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;           
+                name.unify_with(make_atom("Chat with a friend."));
+                description.unify_with(make_atom("You start up the chat client."));
+                next_deck.unify_with(make_atom("Chat"));
+            },
+
+        ],
         late_actions: [] 
     },
     'Chat' : {
         early_actions: [],
-        choices: [],
-        late_actions: [] 
+        choices: [
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;           
+                name.unify_with(make_atom("Ask to hang out."));
+            },
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;           
+                name.unify_with(make_atom("Argue about politics."));
+            },
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;           
+                name.unify_with(make_atom("Send a meme."));
+            },
+        ],
+        late_actions: [
+            (name, description, effects, next_deck, cont) => {
+                const index = 0;           
+                name.unify_with(make_atom("Lol"));
+                description.unify_with(make_atom("Your friend says 'LOL'."));
+            },
+        ] 
     },
 }
 
