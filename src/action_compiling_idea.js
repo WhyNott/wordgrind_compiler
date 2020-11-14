@@ -1,48 +1,103 @@
 //deck object
-const decks = {
-    deck_1 : {
-        //now that I think about it, I don't think priority field is actually neccessary - just put items in a list in the priority order
-        //while we're at it, why not allow priority for choices as well? 
-        early_actions: [
-            (name, description, effects, next_deck, cont) => {
-                const index = 0;
-                //match each precondition with an item in db
-                DB.match(/* nth precondition here */);
+// const decks = {
+//     deck_1 : {
+//         //now that I think about it, I don't think priority field is actually neccessary - just put items in a list in the priority order
+//         //while we're at it, why not allow priority for choices as well? 
+//         early_actions: [
+//             (name, description, effects, next_deck, cont_0) => {
+//                 const index = 0;
+//                 //match each precondition with an item in db
+//                 DB.match(/* nth precondition here */);
                 
-                //...
-                name.unify_with(/* model of the name goes here */);
-                description.unify_with(/* model of the description goes here */);
-                effect.unify_with(make_structured_term("", [
-                    /* models of each effect go here */
-                ]));
-                next_deck.unify_with(/* model of the next deck goes here */);
-                /* here goes logic */
-            },
+//                 //...
+//                 name.unify_with(/* model of the name goes here */);
+//                 description.unify_with(/* model of the description goes here */);
+//                 effect.unify_with(make_structured_term("", [
+//                     /* models of each effect go here */
+//                 ]));
+//                 next_deck.unify_with(/* model of the next deck goes here */);
+//                 /* here goes logic */
+//             },
                      
-        ],
-        choices: [...],
-        late_actions: [...] 
-    },
-    deck_2 : {
-        ...
-    }
-}
+//         ],
+//         choices: [...],
+//         late_actions: [...] 
+//     },
+//     deck_2 : {
+//         ...
+//     }
+// }
 
 //todo:
-//DB match kind of doesnt make sense right now
 //next deck field should go to the same one in a lot of cases
+
+
+
+const DB = {
+    store : {},
+
+    function add(fact){
+        const name = fact.is_atom() ? fact.value.toString() : fact.value.functor;
+        if (name in this.store){
+            this.store[name].push(fact);
+        } else {
+            this.store[name] = [fact];
+        }
+    },
+    //note - to remove the need for trailing here, maybe it would make
+    //sense to create a 'can_unify' method here, that unifies without making changes
+    
+    function remove(fact){
+        if (name in this.store){
+            trail.new_choice_point();
+            for (let i = 0; i < this.store[name].length; i++){
+                if (fact.unify_with(this.store[name][i])){
+                    this.store[name].splice(i, 1);
+                    i--;
+                    trail.restore_choice_point();
+                }
+            }
+            trail.remove_choice_point();
+        }
+    },
+    
+    function match_list(list, index, logic){
+        const item = list[index];
+        const name = item.is_atom() ? item.value.toString() : item.value.functor;
+        if (name in this.store){
+            trail.new_choice_point();
+            for (fact of this.store[name]) {
+                if (fact.unify_with(item)){
+                    if (list.length() == (index+1))
+                        logic();
+                    else
+                        match_one(list, index+1, logc);
+                    trail.restore_choice_point();
+                }
+            }
+            trail.remove_choice_point();
+        } 
+        
+    },
+    function match(logic, ...facts) {
+        if (facts.length == 0)
+            logic();
+        else
+            this.match_list(facts, 0, logic);
+    },
+    
+
+}
+
 
 const decks = {
     'default' : {
         early_actions: [],
         choices: [
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;
                 const var_A = make_empty_variable('?A' + (index == 1 ? '' : index));
                 const var_B = make_empty_variable('?B' + (index == 1 ? '' : index));
-                
-                
-                DB.match(make_structured_term("Player is in {}", [var_A]));
                 
                 name.unify_with(make_structured_term("Walk from {} to {}", [var_A, var_B]));
                 description.unify_with(make_structured_term("You walk from {} to {}. You are now in {}.", [var_A, var_B, var_B]));
@@ -52,36 +107,38 @@ const decks = {
                         make_structured_term("Player is in {}", [var_A]),
                     ]),
                 ]));
-                
-                new_backup_frame();
-                
-                dc.add_new_step('<Walk from ?A to ?B.> condition' + (index == 1 ? '' : index));
-                
-                const cont_1 = () => {
-                    predicates['{} is not {}'](var_A, var_B, index + 1, cont_0);
-                    
-                };
-                const cont_2 = () => {
-                    predicates['{} is a room'](var_A, index + 1, cont_1);
-                    
-                };
-                predicates['{} is a room'](var_B, index + 1, cont_2);
-                
-                remove_backup_frame();
 
-                                       
+                const logic = () => {
+                    new_backup_frame();
+                
+                    dc.add_new_step('<Walk from ?A to ?B.> condition' + (index == 1 ? '' : index));
+                    
+                    const cont_1 = () => {
+                        predicates['{} is not {}'](var_A, var_B, index + 1, cont_0);
+                        
+                    };
+                    const cont_2 = () => {
+                        predicates['{} is a room'](var_A, index + 1, cont_1);
+                        
+                    };
+                    predicates['{} is a room'](var_B, index + 1, cont_2);
+                
+                    remove_backup_frame();
+                };
+                
+                DB.match(logic, 
+                         make_structured_term("Player is in {}", [var_A]),
+                        );                     
             },
 
             
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;
                 const var_Item = make_empty_variable('?Item' + (index == 1 ? '' : index));
                 const var_Place = make_empty_variable('?Place' + (index == 1 ? '' : index));
                 const var_Followup = make_empty_variable('?Followup' + (index == 1 ? '' : index));
-                //match each precondition with an item in db
-                DB.match(make_structured_term("Player is in {}", [var_Place]));
-                DB.match(make_structured_term("{} is in {}", [var_Item, var_Place]));
-                                
+                
+                
        
                 name.unify_with(make_structured_term("Pick up {}.", [var_Item]));
                 description.unify_with(make_structured_term("You have successfully picked up {}.", [var_Item]));
@@ -92,24 +149,29 @@ const decks = {
                     ]),
                 ]));
    
-                /* here goes logic */
-
-                new_backup_frame();
-                dc.add_new_step('<Pick up ?Item.> condition' + (index == 1 ? '' : index));
-                predicates['{} is the followup text for {}'](var_Followup, var_Item, index + 1, cont);
                 
-                remove_backup_frame();
+                const logic = () => {
+                    new_backup_frame();
+                    dc.add_new_step('<Pick up ?Item.> condition' + (index == 1 ? '' : index));
+                    predicates['{} is the followup text for {}'](var_Followup, var_Item, index + 1, cont_0);
+                    remove_backup_frame();
+
+                };
+
+                DB.match(logic,
+                    make_structured_term("Player is in {}", [var_Place]),
+                    make_structured_term("{} is in {}", [var_Item, var_Place])
+                );
+
+                
             },
 
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;
                 const var_Item = make_empty_variable('?Item' + (index == 1 ? '' : index));
                 const var_Place = make_empty_variable('?Place' + (index == 1 ? '' : index));
-                //match each precondition with an item in db
-                DB.match(make_structured_term("Player is in {}", [var_Place]));
-                DB.match(make_structured_term("Player has {}", [var_Item]));
-                                
-       
+                          
+                
                 name.unify_with(make_structured_term("Drop {}.", [var_Item]));
                 description.unify_with(make_structured_term("You have dropped {}.", [var_Item]));
                 effect.unify_with(make_structured_term("", [
@@ -118,17 +180,21 @@ const decks = {
                         make_structured_term("Player has {}", [var_Item]),
                     ]),
                 ]));
+
+                DB.match(cont_0,
+                         make_structured_term("Player is in {}", [var_Place]),
+                         make_structured_term("Player has {}", [var_Item]),
+                        );
             },
             
-            (name, description, effects, next_deck, cont) => {
-                const index = 0;
-                //match each precondition with an item in db
-                DB.match(make_structured_term("Player is in {}", [make_atom("Living Room")]));
+            (name, description, effects, next_deck, cont_0) => {
+                const index = 0; 
                 
-
                 name.unify_with(make_atom("Use computer."));
                 next_deck.unify_with(make_atom("Computer"));
-                /* here goes logic */
+                DB.match(cont_0,
+                    make_structured_term("Player is in {}", [make_atom("Living Room")]);
+                );
             },
 
         ],
@@ -136,28 +202,32 @@ const decks = {
     },
     'Computer' : {
         early_actions: [
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;           
                 name.unify_with(make_atom("Things appear on the monitor."));
                 description.unify_with(make_atom("Things appear on the monitor."));
+                cont_0();
             },
         ],
         choices: [
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;           
                 name.unify_with(make_atom("Play game."));
                 description.unify_with(make_atom("You play a video game."));
+                cont_0();
             },
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;           
                 name.unify_with(make_atom("Browse the internet."));
                 description.unify_with(make_atom("You spend some time aimlessly wandering on the internet."));
+                cont_0();
             },
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;           
                 name.unify_with(make_atom("Chat with a friend."));
                 description.unify_with(make_atom("You start up the chat client."));
                 next_deck.unify_with(make_atom("Chat"));
+                cont_0();
             },
 
         ],
@@ -166,29 +236,46 @@ const decks = {
     'Chat' : {
         early_actions: [],
         choices: [
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;           
                 name.unify_with(make_atom("Ask to hang out."));
+                cont_0();
             },
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;           
                 name.unify_with(make_atom("Argue about politics."));
+                cont_0();
             },
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;           
                 name.unify_with(make_atom("Send a meme."));
+                cont_0();
             },
         ],
         late_actions: [
-            (name, description, effects, next_deck, cont) => {
+            (name, description, effects, next_deck, cont_0) => {
                 const index = 0;           
                 name.unify_with(make_atom("Lol"));
                 description.unify_with(make_atom("Your friend says 'LOL'."));
+                cont_0();
             },
         ] 
     },
 }
 
+
+function apply_element(element) {
+    //out_pipe(element.description);
+    if (element.effects != null){
+        for (effect of element.effects){
+            if (!effect.is_atom() && effect.value.functor == "removes"){
+                DB.remove(effect.value.args[0]);
+            } else {
+                DB.add(effect);
+            }
+        }
+    }
+}
 
 
 
@@ -214,7 +301,7 @@ function find_choices(){
         let found_choice = {};
         found_choice.name = name.pprint(bracketed = false);
         found_choice.description = description.pprint(bracketed = false);
-        found_choice.effects = effects.value.args;
+        found_choice.effects = effects.bound() ? effects.value.args : null;
         found_choice.next_deck = next_deck.bound() ? next_deck.value.value : null;
         choices.push(found_choice);
     };
@@ -248,7 +335,7 @@ function choose_action(late){
             found_suitable = true;
             chosen_action.name = name.pprint(bracketed = false);
             chosen_action.description = description.pprint(bracketed = false);
-            chosen_action.effects = effects.value.args;
+            chosen_action.effects = effects.bound() ? effects.value.args : null;
             chosen_action.next_deck = next_deck.bound() ? next_deck.value.value : null;
         }
     };
