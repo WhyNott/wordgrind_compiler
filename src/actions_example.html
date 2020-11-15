@@ -1,0 +1,42 @@
+<html>
+  <head>
+    <script src="js_assets/runtime.js"></script>
+    <script src="action_compiling_idea.js"></script>
+    <script>
+      dc = {
+          add_new_step : (s) => console.log(s)
+      };
+      
+      window.addEventListener('DOMContentLoaded', function(){
+          bring_up_choices();
+      });
+      function bring_up_choices(){
+          available_choices = find_choices();
+          const choice_list = document.getElementById("choices");
+          choice_list.innerHTML = '';
+          let i = 1;
+          for (choice of available_choices){
+              let node = document.createElement("LI");                 
+              let textnode = document.createTextNode(i+". "+choice.name);
+              let link = document.createElement("A");                 
+              link.appendChild(textnode);
+              link.href = "";
+              node.appendChild(link);
+              choice_list.appendChild(node);
+              i++;
+          }
+      }
+      
+    </script>
+  </head>
+  <body>
+    <div>
+      <p>Deck demo engaged.</p>
+      <ul id="choices">
+        <li><a href="">1.Blah blah blah</a></li>
+        <li><a href="">2.Blah blah blah</a></li>
+        <li><a href="">3.Blah blah blah</a></li>
+      </ul>
+    </div>
+  </body>
+</html>
