@@ -20,11 +20,28 @@
               let textnode = document.createTextNode(i+". "+choice.name);
               let link = document.createElement("A");                 
               link.appendChild(textnode);
-              link.href = "";
+              link.href = "javascript:;";
+              const cur = i-1;
+              link.onclick = () => choose(cur);
               node.appendChild(link);
               choice_list.appendChild(node);
               i++;
           }
+
+          const storage_list = document.getElementById("storage");
+          storage_list.innerHTML = '';
+          for (element of DB) {
+              let node = document.createElement("LI");
+              let textnode = document.createTextNode(element.pprint());
+              node.appendChild(textnode);
+              storage_list.appendChild(node);
+          }
+      }
+
+      function choose(n){
+          make_choice(n);
+          bring_up_choices();
+
       }
       
     </script>
@@ -37,6 +54,13 @@
         <li><a href="">2.Blah blah blah</a></li>
         <li><a href="">3.Blah blah blah</a></li>
       </ul>
+    </div>
+    <div>
+      <ul id="storage">
+      </ul>
+    </div>
+    <div>
+      <!-- <img alt="debug" src="imgs/empty.png"/> -->
     </div>
   </body>
 </html>

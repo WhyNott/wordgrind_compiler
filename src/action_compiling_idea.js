@@ -40,6 +40,14 @@ const DB = {
         "{} is in {}" : [make_structured_term("{} is in {}", [make_atom("Knife"), make_atom("Kitchen")])],
     },
 
+    *[Symbol.iterator]() {
+        for (const [key, value] of Object.entries(this.store)){
+            for (element of value){
+                yield element;
+            }
+        }
+    },
+
     add: function (fact){
         const name = fact.is_atom() ? fact.value.toString() : fact.value.functor;
         if (name in this.store){
@@ -363,10 +371,10 @@ const STATES = {
     LATE:2,
     EARLY:3
 };
-
 function make_choice(n){
     
     let current_element = available_choices[n];
+    apply_element(current_element);
     let state;
     if (current_element.next_deck === null) {
         state = STATES.LATE;
