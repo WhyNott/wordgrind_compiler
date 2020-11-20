@@ -64,10 +64,12 @@ Choice <Use computer.>
        leads into
                  <Computer>
 
-
+(*note - there is a bug with early actions here, because it should
+       actually get jammed as soon as you enter the computer deck*)
 In <Computer>
-
-   Early action <Things appear on the monitor.> displays <Things appear on the monitor.>
+   Early action <Things appear on the monitor.> avaiable when
+         not <<Things appear on the monitor.> happened _ turns ago> 
+         displays <Things appear on the monitor.>        
 
    Choice <Play game.> displays <You play a video game.>
 
@@ -83,5 +85,5 @@ In <Chat>
    Choice <Argue about politics.>
    Choice <Send a meme.>
 
-   Action <Lol> displays <Your friend says 'LOL'.>
+   Action <Lol> (happens once) displays <Your friend says 'LOL'.> 
 End <Chat>

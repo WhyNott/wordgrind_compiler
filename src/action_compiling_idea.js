@@ -31,7 +31,8 @@
 //todo:
 //next deck field should go to the same one in a lot of cases (actually lets worry about that later)
 
-
+//okay, so it seems like the effects are often unbound
+//seems like it would make sense to bring in my node debugger and see whats going on here
 
 
 const DB = {
@@ -58,9 +59,8 @@ const DB = {
     },
     //note - to remove the need for trailing here, maybe it would make
     //sense to create a 'can_unify' method here, that unifies without making changes
-    
     remove: function (fact){
-        if (name in this.store){
+        for (name in this.store){
             trail.new_choice_point();
             for (let i = 0; i < this.store[name].length; i++){
                 if (fact.unify_with(this.store[name][i])){
@@ -313,9 +313,29 @@ function find_choices(){
         let found_choice = {};
         found_choice.name = name.pprint(bracketed = false);
         found_choice.description = description.pprint(bracketed = false);
-        found_choice.effects = effects.bound() ? effects.dereferenced_value().value.args : null;
+        if (!effects.is_variable() || effects.bound()){
+            const copy_term = (term) => {
+                const leading = term.dereferenced_value();
+                if (leading.is_variable() && !leading.bound()){
+                    console.log(leading);
+                    throw "error";
+                }
+                if (leading.is_atom()){
+                    return leading;
+                } else {
+                    let args = [];
+                    for (arg of leading.value.args) {
+                        args.push(copy_term(arg));
+                    }
+                    return make_structured_term(leading.value.functor, args);
+                }
+            };
+            found_choice.effects = copy_term(effects).value.args;
+        } else
+            found_choice.effects = null;
         found_choice.next_deck = next_deck.bound() ? next_deck.value.value : null;
         choices.push(found_choice);
+        dc.add_new_step('Found: ' + found_choice.name);
     };
 
     trail.new_choice_point();
@@ -327,6 +347,9 @@ function find_choices(){
 
     return choices;
 }
+
+//hmm
+//two possiblities:
 
 
 
@@ -347,7 +370,23 @@ function choose_action(late){
             found_suitable = true;
             chosen_action.name = name.pprint(bracketed = false);
             chosen_action.description = description.pprint(bracketed = false);
-            chosen_action.effects = effects.bound() ? effects.value.args : null;
+            if (effects.bound()){
+                const copy_term = (term) => {
+                    const leading = term.dereferenced_value();
+                    console.assert(leading.bound());
+                    if (leading.is_atom()){
+                        return leading;
+                    } else {
+                        let args = [];
+                        for (arg of leading.value.args) {
+                            args.push(copy_term(arg));
+                        }
+                        return make_structured_term(leading.value.functor, args);
+                    }
+                };
+                chosen_action.effects = copy_term(effects).value.args;
+            } else
+                chosen_action.effects = null;
             chosen_action.next_deck = next_deck.bound() ? next_deck.value.value : null;
         }
     };
@@ -434,6 +473,7 @@ function make_choice(n){
                 deck_stack.push(current_deck);
             }
             current_deck = {deck: current_element.next_deck, pre_choice:current_deck.pre_choice};
+            state = STATES.EARLY;
             
         } else {
             //throw an error here
