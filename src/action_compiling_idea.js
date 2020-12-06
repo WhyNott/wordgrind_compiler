@@ -355,7 +355,7 @@ function find_choices(){
 
 function choose_action(late){
     const deck = decks[current_deck.deck];
-    const actions = late ? deck.early_actions : deck.late_actions
+    const actions = late ? deck.late_actions : deck.early_actions; 
     
     const name        = make_empty_variable("name"); 
     const description = make_empty_variable("description"); 
@@ -472,7 +472,7 @@ function make_choice(n){
             if (current_deck != "default") {
                 deck_stack.push(current_deck);
             }
-            current_deck = {deck: current_element.next_deck, pre_choice:current_deck.pre_choice};
+            current_deck = {deck: current_element.next_deck, pre_choice:true};
             state = STATES.EARLY;
             
         } else {

@@ -64,8 +64,7 @@ Choice <Use computer.>
        leads into
                  <Computer>
 
-(*note - there is a bug with early actions here, because it should
-       actually get jammed as soon as you enter the computer deck*)
+
 In <Computer>
    Early action <Things appear on the monitor.> avaiable when
          not <<Things appear on the monitor.> happened _ turns ago> 
