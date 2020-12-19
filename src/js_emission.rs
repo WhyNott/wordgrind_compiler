@@ -175,7 +175,7 @@ fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 fn emmit_procedure(f: &mut fmt::Formatter, proc : &ast::Procedure) -> fmt::Result {
     write!(f, "    ")?; write!(f, "'{}': (", proc.head.name)?;
     for arg in &proc.head.elements {
-        write!(f, "{}, ", arg.variable_name)?;
+        write!(f, "{}, ", JSVariable(arg.clone()))?;
     }
     
     writeln!(f, "index, cont_0) => {{")?;
