@@ -14,6 +14,12 @@
           picker.addEventListener('input', (n) => dc.set_step_to(Number(n.data)));
           bring_up_choices();
       });
+
+      function set_description(desc){
+          const description = document.getElementById("description");
+          description.innerHTML = desc;
+      }
+      
       function bring_up_choices(){
           available_choices = find_choices();
           const choice_list = document.getElementById("choices");
@@ -53,7 +59,7 @@
   </head>
   <body>
     <div>
-      <p>Deck demo engaged.</p>
+      <p id="description">Deck demo engaged.</p>
       <ul id="choices">
         <li><a href="">1.Blah blah blah</a></li>
         <li><a href="">2.Blah blah blah</a></li>

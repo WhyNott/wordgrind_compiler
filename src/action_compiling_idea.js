@@ -31,9 +31,6 @@
 //todo:
 //next deck field should go to the same one in a lot of cases (actually lets worry about that later)
 
-//okay, so it seems like the effects are often unbound
-//seems like it would make sense to bring in my node debugger and see whats going on here
-
 
 const DB = {
     store : {
@@ -72,6 +69,7 @@ const DB = {
             trail.remove_choice_point();
         }
     },
+
     
     match_list: function (list, index, logic){
         const item = list[index];
@@ -213,14 +211,15 @@ const decks = {
         late_actions: [] 
     },
     'Computer' : {
-        early_actions: [
-            (name, description, effects, next_deck, cont_0) => {
-                const index = 0;           
-                name.unify_with(make_atom("Things appear on the monitor."));
-                description.unify_with(make_atom("Things appear on the monitor."));
-                cont_0();
-            },
-        ],
+      //  early_actions: [
+      //      (name, description, effects, next_deck, cont_0) => {
+      //          const index = 0;           
+      //          name.unify_with(make_atom("Things appear on the monitor."));
+      //          description.unify_with(make_atom("Things appear on the monitor."));
+      //          cont_0();
+      //      },
+        //  ],
+        early_actions: [],
         choices: [
             (name, description, effects, next_deck, cont_0) => {
                 const index = 0;           
@@ -265,19 +264,19 @@ const decks = {
             },
         ],
         late_actions: [
-            (name, description, effects, next_deck, cont_0) => {
-                const index = 0;           
-                name.unify_with(make_atom("Lol"));
-                description.unify_with(make_atom("Your friend says 'LOL'."));
-                cont_0();
-            },
+            //(name, description, effects, next_deck, cont_0) => {
+            //    const index = 0;           
+            //    name.unify_with(make_atom("Lol"));
+            //    description.unify_with(make_atom("Your friend says 'LOL'."));
+            //    cont_0();
+            //},
         ] 
     },
 }
 
 
 function apply_element(element) {
-    //out_pipe(element.description);
+    set_description(element.description);
     if (element.effects != null){
         for (effect of element.effects){
             if (!effect.is_atom() && effect.value.functor == "removes"){
@@ -312,7 +311,7 @@ function find_choices(){
     const cont = () => {
         let found_choice = {};
         found_choice.name = name.pprint(bracketed = false);
-        found_choice.description = description.pprint(bracketed = false);
+        found_choice.description = description.bound() ? description.pprint(bracketed = false) : null;
         if (!effects.is_variable() || effects.bound()){
             const copy_term = (term) => {
                 const leading = term.dereferenced_value();
@@ -347,11 +346,6 @@ function find_choices(){
 
     return choices;
 }
-
-//hmm
-//two possiblities:
-
-
 
 function choose_action(late){
     const deck = decks[current_deck.deck];

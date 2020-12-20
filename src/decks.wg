@@ -16,8 +16,10 @@
 *)
 
 <<Kitchen> is a room>
-<<Living room> is a room>
-
+<<Living Room> is a room>
+<<It is really shiny.> is the followup text for <Knife>>
+                          
+<<It seems to be missing batteries.> is the followup text for <TV Remote>>
 
 
 Initial state is
@@ -86,3 +88,6 @@ In <Chat>
 
    Action <Lol> (happens once) displays <Your friend says 'LOL'.> 
 End <Chat>
+
+(* So, how do I get across the idea that these things should only happen once? *)
+
