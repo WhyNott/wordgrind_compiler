@@ -1,16 +1,13 @@
 const predicates = {
-    '{} and {} are paired by {}': (var_A, var_B, var_Drink, index, cont_0) => {
+    '{} and {} are paired by {}': (head_A, head_B, head_Drink, index, cont_0) => {
         new_backup_frame();
-        const var_A  = make_empty_variable('?A' + (index == 1 ? '' : index));
-        const var_B  = make_empty_variable('?B' + (index == 1 ? '' : index));
-        const var_Drink  = make_empty_variable('?Drink' + (index == 1 ? '' : index));
         dc.add_new_step('<{} and {} are paired by {}> Entry' + (index == 1 ? '' : index));
 
         const cont_1 = () => {
-            predicates['{} drinks {}'](var_B, var_Drink, index + 1, cont_0);
+            predicates['{} drinks {}'](head_B, head_Drink, index + 1, cont_0);
 
         };
-        predicates['{} drinks {}'](var_A, var_Drink, index + 1, cont_1);
+        predicates['{} drinks {}'](head_A, head_Drink, index + 1, cont_1);
 
         remove_backup_frame();
     },

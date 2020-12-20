@@ -7,7 +7,7 @@ use std::{
 };
 
 
-
+use crate::tl_database::{Context, Variable};
 
 //this whole thing is MASSIVELY stupid
 //there are more clones here then in... uh... place with a lot of clones
@@ -55,14 +55,14 @@ impl fmt::Display for JSSentence {
 
 
 
-struct JSVariable(parser::Variable);
+struct JSVariable(Variable);
 impl fmt::Display for JSVariable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let v = &self.0;
-        if v.is_head {
-            write!(f, "{}", v.variable_name)
+        if v.get_is_head() {
+            write!(f, "head_{}", v.get_variable_name())
         } else {
-            write!(f, "var_{}", v.variable_name)
+            write!(f, "var_{}", v.get_variable_name())
         }
     }
 }
@@ -87,7 +87,7 @@ impl fmt::Display for JSTerm {
 
 use indoc::writedoc;
 
-struct JSVerb(ast::EmissionVerb, Vec<parser::Variable>, usize);
+struct JSVerb(ast::EmissionVerb, Vec<Variable>, usize);
 impl fmt::Display for JSVerb {
 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     let verb = &self.0;
@@ -129,7 +129,7 @@ fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
         ast::EmissionVerb::Or(clauses) => {
             for variable in variables {
-                if variable.is_head {
+                if variable.get_is_head() {
                         continue;
                 }
                 writeln!(f, "{0:i$}const backup_{1} = {1}.backup_value(); reg_backup({1}, index);",
@@ -143,7 +143,7 @@ fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 
                 
                 for variable in variables {
-                    if variable.is_head {
+                    if variable.get_is_head() {
                         continue;
                     }
                     writeln!(f, "{0:i$}{1}.value = backup_{1};",
@@ -183,14 +183,14 @@ fn emmit_procedure(f: &mut fmt::Formatter, proc : &ast::Procedure) -> fmt::Resul
 
     for variable in &proc.variables {
         //no need to initialize function parameters
-        if variable.is_head {
+        if variable.get_is_head() {
             continue;
         }
         
         
         write!(f, "        ")?;
         writeln!(f, "const {0}  = make_empty_variable('?{1}' + (index == 1 ? '' : index));",
-                 JSVariable(variable.clone()), variable.variable_name)?;
+                 JSVariable(variable.clone()), variable.get_variable_name())?;
     }
     write!(f, "        ")?;
     writeln!(f, "dc.add_new_step('<{}> Entry' + (index == 1 ? '' : index));", proc.head.name)?;

@@ -2,6 +2,7 @@ pub mod parser;
 
 mod js_emission;
 mod rewrite_passes;
+mod tl_database;
 
 use std::{
     fs::File,
@@ -9,7 +10,12 @@ use std::{
 };
 
 fn main() {
-    println!("Hello, world!");
+    let test_context = tl_database::new_context("Sup".to_string(), 0, 0, "world.wg".to_string());
+    let test_variable = tl_database::new_variable("Hi".to_string(), test_context, false);
+
+    test_variable.set_is_head(true);
+
+    println!("Hello, {}!", test_variable.get_is_head());
     let filename = "testytest.wg";
     let file_results = parser::consult_file(filename);
 
@@ -20,13 +26,13 @@ fn main() {
     for (key, value) in file_results.into_iter() {
         let (name, arity) = key;
         println!("{}/{}:", name, arity);
-        let (clause, num) = value;
+        let clause = value;
 
-        println!("{} [{}]", clause, num);
-        let (explicit, _) = rewrite_passes::explicit_uni::process((clause, num));
+        println!("{}", clause);
+        let explicit = rewrite_passes::explicit_uni::process(clause);
         println!("Explicit unification:\n {}", explicit);
 
-        let (extracted, _) = rewrite_passes::variable_inits::process((explicit, num));
+        let extracted = rewrite_passes::variable_inits::process(explicit);
 
         println!("Variable init:\n {}", extracted);
 

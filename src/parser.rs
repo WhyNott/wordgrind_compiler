@@ -13,13 +13,9 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::slice;
 
-#[derive(Debug, Clone)]
-pub struct Context {
-    pub leading_whitespace: String,
-    pub line_number: i32,
-    pub column_number: i32,
-    pub file_name: String,
-}
+use crate::tl_database::{
+    existing_variable, new_atom, new_context, new_variable, Atom, Context, Variable,
+};
 
 pub fn rustify_context(context: *const parser_c::Context) -> Context {
     let leading_whitespace;
@@ -40,19 +36,14 @@ pub fn rustify_context(context: *const parser_c::Context) -> Context {
             .to_string();
     }
 
-    Context {
-        leading_whitespace,
-        line_number,
-        column_number,
-        file_name,
-    }
+    new_context(leading_whitespace, line_number, column_number, file_name)
 }
 use std::fmt;
 #[derive(Debug, Clone)]
 pub struct Sentence {
     pub name: String,
     pub elements: Vec<Term>,
-    pub context: Box<Context>,
+    pub context: Context,
 }
 
 impl fmt::Display for Sentence {
@@ -65,52 +56,6 @@ impl fmt::Display for Sentence {
             }
         }
         write!(f, ")")
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Variable {
-    pub variable_name: String,
-    pub variable_id: i32,
-    pub context: Box<Context>,
-    pub is_head: bool,
-}
-
-impl fmt::Display for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "?{}({}){}",
-            self.variable_name,
-            self.variable_id,
-            if self.is_head { "h" } else { "" }
-        )
-    }
-}
-
-impl PartialEq for Variable {
-    fn eq(&self, other: &Self) -> bool {
-        self.variable_id == other.variable_id && self.variable_name == other.variable_name
-    }
-}
-
-impl Eq for Variable {}
-use std::cmp::Ordering;
-
-impl Ord for Variable {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let result = self.variable_id.cmp(&other.variable_id);
-        if result == Ordering::Equal {
-            self.variable_name.cmp(&other.variable_name)
-        } else {
-            result
-        }
-    }
-}
-
-impl PartialOrd for Variable {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
     }
 }
 
@@ -142,7 +87,7 @@ pub fn rustify_sentence(
     if unsafe { (*sentence).name.is_null() } {
         let variable;
         let variable_name;
-        let mut variable_id: i32;
+
         let context;
         unsafe {
             variable = sentence as *const parser_c::VariableSentence;
@@ -150,21 +95,19 @@ pub fn rustify_sentence(
                 .to_str()
                 .expect("Incorrect utf8 data in variable name")
                 .to_string();
-            variable_id = (*variable).variable_id;
-            context = Box::new(rustify_context((*variable).context));
+            //note - the variable id used in the parser probably won't be needed anymore
+            //variable_id = (*variable).variable_id;
+            context = rustify_context((*variable).context);
         }
         if varset.contains_key(&variable_name) {
+            let variable_id: i32;
             variable_id = *varset.get(&variable_name).expect("Item missing");
+            Term::Variable(existing_variable(variable_id))
         } else {
-            varset.insert(variable_name.clone(), variable_id);
+            let retvar = new_variable(variable_name.clone(), context, false);
+            varset.insert(variable_name, retvar.get_variable_id());
+            Term::Variable(retvar)
         }
-
-        Term::Variable(Variable {
-            variable_name,
-            variable_id,
-            context,
-            is_head: false,
-        })
     } else {
         unsafe {
             let name = CStr::from_ptr((*sentence).name)
@@ -178,7 +121,7 @@ pub fn rustify_sentence(
             for element in elements_old {
                 elements_new.push(rustify_sentence(element, varset));
             }
-            let context = Box::new(rustify_context((*sentence).context));
+            let context = rustify_context((*sentence).context);
 
             Term::Sentence(Sentence {
                 name,
@@ -260,7 +203,7 @@ pub fn rustify_logic_verb(
 pub struct Clause {
     pub head: Sentence,
     pub body: Option<LogicVerb>,
-    pub context: Box<Context>,
+    pub context: Context,
 }
 
 impl fmt::Display for Clause {
@@ -287,7 +230,7 @@ pub fn rustify_clause(cl: *const parser_c::Clause, varset: &mut BTreeMap<String,
             } else {
                 Some(rustify_logic_verb((*cl).body, varset))
             },
-            context: Box::new(rustify_context((*cl).context)),
+            context: rustify_context((*cl).context),
         }
     }
 }
@@ -325,7 +268,7 @@ pub fn parse_clause(
     rustify_clause(&clause, &mut BTreeMap::new())
 }
 
-pub fn consult_file(filename: &str) -> BTreeMap<(String, i32), (Clause, i32)> {
+pub fn consult_file(filename: &str) -> BTreeMap<(String, i32), Clause> {
     let mut tokens_size = 0;
     tokenize_file(filename, &mut tokens_size);
     let mut tokens_counter = 0;
@@ -361,39 +304,33 @@ pub fn consult_file(filename: &str) -> BTreeMap<(String, i32), (Clause, i32)> {
     join_clauses_of_same_predicate(&map)
 }
 
+//since now the variable id's are unique file-wise, there is no need for all this logic for getting the highest varset, etc
+
 fn join_clauses_of_same_predicate(
     separate_clauses_by_predicate: &BTreeMap<(String, i32), Vec<(Clause, i32)>>,
-) -> BTreeMap<(String, i32), (Clause, i32)> {
-    let mut joined_clause_by_predicate: BTreeMap<(String, i32), (Clause, i32)> = BTreeMap::new();
+) -> BTreeMap<(String, i32), Clause> {
+    let mut joined_clause_by_predicate: BTreeMap<(String, i32), Clause> = BTreeMap::new();
     for (pred_id, separate_clauses) in separate_clauses_by_predicate.iter() {
         if separate_clauses.len() == 1 {
-            joined_clause_by_predicate.insert(pred_id.clone(), separate_clauses[0].clone());
+            joined_clause_by_predicate.insert(pred_id.clone(), separate_clauses[0].0.clone());
         } else {
             let (name, arity) = pred_id;
-            let mut highest_varset = 0;
-            for (_, varset) in separate_clauses {
-                if highest_varset < *varset {
-                    highest_varset = *varset;
-                }
-            }
+
             let mut joined_clause_head_args = Vec::with_capacity(*arity as usize);
 
-            let joined_clause_context = separate_clauses[0].0.context.clone();
+            let joined_clause_context = separate_clauses[0].0.context;
 
             for i in 0..*arity {
-                highest_varset += 1;
-                joined_clause_head_args.push(Term::Variable(Variable {
-                    variable_name: "head_".to_owned() + &i.to_string(),
-
-                    variable_id: highest_varset,
-                    context: joined_clause_context.clone(),
-                    is_head: true,
-                }));
+                joined_clause_head_args.push(Term::Variable(new_variable(
+                    i.to_string(),
+                    joined_clause_context,
+                    true,
+                )));
             }
             let joined_head = Sentence {
                 name: name.to_string(),
                 elements: joined_clause_head_args.clone(),
-                context: joined_clause_context.clone(),
+                context: joined_clause_context,
             };
             let mut disjunction: Vec<LogicVerb> =
                 Vec::with_capacity(separate_clauses.len() as usize);
@@ -411,8 +348,8 @@ fn join_clauses_of_same_predicate(
                         name: "{} = {}".to_string(),
                         elements: vec![head_arg.clone(), joined_head_arg.clone()],
                         context: match head_arg {
-                            Term::Sentence(Sentence { context, .. }) => context.clone(),
-                            Term::Variable(Variable { context, .. }) => context.clone(),
+                            Term::Sentence(Sentence { context, .. }) => *context,
+                            Term::Variable(v) => v.get_context(),
                         },
                     }));
                 }
@@ -455,21 +392,18 @@ fn join_clauses_of_same_predicate(
 
             joined_clause_by_predicate.insert(
                 pred_id.clone(),
-                (
-                    Clause {
-                        head: joined_head,
-                        body: Some(if disjunction.len() == 1 {
-                            disjunction
-                                .into_iter()
-                                .next()
-                                .expect("disjunction is empty")
-                        } else {
-                            LogicVerb::Or(disjunction)
-                        }),
-                        context: joined_clause_context,
-                    },
-                    highest_varset,
-                ),
+                Clause {
+                    head: joined_head,
+                    body: Some(if disjunction.len() == 1 {
+                        disjunction
+                            .into_iter()
+                            .next()
+                            .expect("disjunction is empty")
+                    } else {
+                        LogicVerb::Or(disjunction)
+                    }),
+                    context: joined_clause_context,
+                },
             );
         }
     }

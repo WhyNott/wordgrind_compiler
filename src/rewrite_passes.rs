@@ -1,11 +1,12 @@
 pub mod explicit_uni {
     use crate::parser;
+    use crate::tl_database::{new_unnamed_variable, new_variable, Context, Variable};
 
     #[derive(Debug, Clone)]
     pub struct Sentence {
         pub name: String,
-        pub elements: Vec<parser::Variable>,
-        pub context: Box<parser::Context>,
+        pub elements: Vec<Variable>,
+        pub context: Context,
     }
 
     use std::fmt;
@@ -27,8 +28,8 @@ pub mod explicit_uni {
         Sentence(Sentence),
         And(Vec<LogicVerb>),
         Or(Vec<LogicVerb>),
-        Unify(parser::Variable, parser::Variable),
-        Structure(parser::Variable, parser::Sentence),
+        Unify(Variable, Variable),
+        Structure(Variable, parser::Sentence),
     }
 
     impl fmt::Display for LogicVerb {
@@ -72,7 +73,7 @@ pub mod explicit_uni {
     pub struct Clause {
         pub head: Sentence,
         pub body: Option<LogicVerb>,
-        pub context: Box<parser::Context>,
+        pub context: Context,
     }
 
     impl fmt::Display for Clause {
@@ -87,29 +88,23 @@ pub mod explicit_uni {
         }
     }
 
-    pub fn process(input: (parser::Clause, i32)) -> (Clause, i32) {
-        let clause = input.0;
-        let mut varset = input.1;
+    pub fn process(clause: parser::Clause) -> Clause {
         let mut new_body = Vec::new();
         let mut head_variables = Vec::new();
 
-        for element in clause.head.elements.into_iter() {
+        for (i, element) in clause.head.elements.into_iter().enumerate() {
             match element {
                 parser::Term::Sentence(s) => {
-                    varset += 1;
-                    let new_variable = parser::Variable {
-                        variable_name: "head_".to_owned() + &varset.to_string(),
-
-                        variable_id: varset,
-                        context: s.context.clone(),
-                        is_head: true,
-                    };
+                    let new_variable =
+                        new_variable(i.to_string(), s.context, true);
                     new_body.push(LogicVerb::Structure(new_variable.clone(), s));
                     head_variables.push(new_variable);
                 }
 
                 parser::Term::Variable(v) => {
                     //NOTE TODO FIXME ETC this is kind of wrong, since they really should be marked as head variables if they arent already, and they should be marked as such wherever they appear in the clause body
+                    //Fixed for now, but we'll see
+                    v.set_is_head(true);
                     head_variables.push(v);
                 }
             }
@@ -117,7 +112,7 @@ pub mod explicit_uni {
 
         let new_body = match clause.body {
             Some(body) => {
-                process_body(body, &mut new_body, &mut varset);
+                process_body(body, &mut new_body);
                 Some(if new_body.len() == 1 {
                     new_body.into_iter().next().expect("Sentence is empty")
                 } else {
@@ -132,21 +127,18 @@ pub mod explicit_uni {
                 }
             }
         };
-        (
-            Clause {
-                head: Sentence {
-                    name: clause.head.name,
-                    elements: head_variables,
-                    context: clause.head.context,
-                },
-                body: new_body,
-                context: clause.context,
+        Clause {
+            head: Sentence {
+                name: clause.head.name,
+                elements: head_variables,
+                context: clause.head.context,
             },
-            varset,
-        )
+            body: new_body,
+            context: clause.context,
+        }
     }
 
-    fn process_body(input: parser::LogicVerb, output: &mut Vec<LogicVerb>, varset: &mut i32) {
+    fn process_body(input: parser::LogicVerb, output: &mut Vec<LogicVerb>) {
         match input {
             parser::LogicVerb::Sentence(s) => {
                 if s.name == "{} = {}" {
@@ -160,20 +152,9 @@ pub mod explicit_uni {
                             output.push(LogicVerb::Unify(x, y));
                         }
                         (parser::Term::Sentence(x), parser::Term::Sentence(y)) => {
-                            *varset += 1;
-                            let new_variable1 = parser::Variable {
-                                variable_name: varset.to_string(),
-                                variable_id: *varset,
-                                context: x.context.clone(),
-                                is_head: false,
-                            };
-                            *varset += 1;
-                            let new_variable2 = parser::Variable {
-                                variable_name: varset.to_string(),
-                                variable_id: *varset,
-                                context: y.context.clone(),
-                                is_head: false,
-                            };
+                            let new_variable1 = new_unnamed_variable(x.context, false);
+
+                            let new_variable2 = new_unnamed_variable(y.context, false);
                             output.push(LogicVerb::Structure(new_variable1.clone(), x));
                             output.push(LogicVerb::Structure(new_variable2.clone(), y));
                             output.push(LogicVerb::Unify(new_variable1, new_variable2));
@@ -188,13 +169,7 @@ pub mod explicit_uni {
                     for element in s.elements {
                         match element {
                             parser::Term::Sentence(s) => {
-                                *varset += 1;
-                                let new_variable = parser::Variable {
-                                    variable_name: varset.to_string(),
-                                    variable_id: *varset,
-                                    context: s.context.clone(),
-                                    is_head: false,
-                                };
+                                let new_variable = new_unnamed_variable(s.context, false);
                                 new_arguments.push(new_variable.clone());
                                 output.push(LogicVerb::Structure(new_variable, s));
                             }
@@ -213,15 +188,14 @@ pub mod explicit_uni {
             parser::LogicVerb::And(lvs) => {
                 let mut new_lvs = Vec::with_capacity(lvs.len());
                 for lv in lvs {
-                    process_body(lv, &mut new_lvs, varset);
+                    process_body(lv, &mut new_lvs);
                 }
                 output.push(LogicVerb::And(new_lvs));
             }
             parser::LogicVerb::Or(lvs) => {
                 let mut new_lvs = Vec::with_capacity(lvs.len());
                 for lv in lvs {
-                    let mut newvarset = *varset;
-                    process_body(lv, &mut new_lvs, &mut newvarset);
+                    process_body(lv, &mut new_lvs);
                 }
                 output.push(LogicVerb::Or(new_lvs))
             }
@@ -232,13 +206,13 @@ pub mod explicit_uni {
 pub mod variable_inits {
     use crate::parser;
     use crate::rewrite_passes::explicit_uni;
-
+    use crate::tl_database::{Context, Variable};
     #[derive(Debug, Clone)]
     pub struct Clause {
         pub head: explicit_uni::Sentence,
-        pub variables: Option<Vec<parser::Variable>>,
+        pub variables: Option<Vec<Variable>>,
         pub body: Option<explicit_uni::LogicVerb>,
-        pub context: Box<parser::Context>,
+        pub context: Context,
     }
 
     use std::fmt;
@@ -257,9 +231,7 @@ pub mod variable_inits {
     use itertools::Itertools;
     use std::collections::BTreeSet;
 
-    pub fn process(input: (explicit_uni::Clause, i32)) -> (Clause, i32) {
-        let (clause, num) = input;
-
+    pub fn process(clause: explicit_uni::Clause) -> Clause {
         let variables = match &clause.body {
             None => None,
             Some(body) => {
@@ -268,41 +240,38 @@ pub mod variable_inits {
                 Some(
                     gathered_variables
                         .into_iter()
-                        .unique_by(|v| v.variable_name.clone())
+                        .unique_by(|v| v.get_variable_name())
                         .collect(),
                 )
             }
         };
 
-        (
-            Clause {
-                head: clause.head,
-                body: clause.body,
-                context: clause.context,
-                variables,
-            },
-            num,
-        )
+        Clause {
+            head: clause.head,
+            body: clause.body,
+            context: clause.context,
+            variables,
+        }
     }
 
-    fn process_sentence(input: &parser::Sentence, varset: &mut BTreeSet<parser::Variable>) {
+    fn process_sentence(input: &parser::Sentence, varset: &mut BTreeSet<Variable>) {
         for element in &input.elements {
             match element {
                 parser::Term::Sentence(s) => process_sentence(&s, varset),
                 parser::Term::Variable(v) => {
-                    varset.insert(v.clone());
+                    varset.insert(*v);
                 }
             }
         }
     }
 
-    fn process_body(input: &explicit_uni::LogicVerb, varset: &mut BTreeSet<parser::Variable>) {
+    fn process_body(input: &explicit_uni::LogicVerb, varset: &mut BTreeSet<Variable>) {
         use explicit_uni::LogicVerb;
 
         match input {
             LogicVerb::Sentence(s) => {
                 for var in &s.elements {
-                    varset.insert(var.clone());
+                    varset.insert(*var);
                 }
             }
             LogicVerb::And(a) | LogicVerb::Or(a) => {
@@ -311,11 +280,11 @@ pub mod variable_inits {
                 }
             }
             LogicVerb::Unify(v1, v2) => {
-                varset.insert(v1.clone());
-                varset.insert(v2.clone());
+                varset.insert(*v1);
+                varset.insert(*v2);
             }
             LogicVerb::Structure(v, s) => {
-                varset.insert(v.clone());
+                varset.insert(*v);
                 process_sentence(s, varset);
             }
         }
@@ -326,14 +295,15 @@ pub mod emission {
     use crate::parser;
     use crate::rewrite_passes::explicit_uni;
     use crate::rewrite_passes::variable_inits;
+    use crate::tl_database::{Context, Variable};
 
     #[derive(Debug)]
     pub struct Procedure {
         pub head: explicit_uni::Sentence,
-        pub variables: Vec<parser::Variable>,
+        pub variables: Vec<Variable>,
         pub continuations: Vec<EmissionVerb>,
         pub body: EmissionVerb,
-        pub context: Box<parser::Context>,
+        pub context: Context,
     }
 
     use std::fmt;
@@ -341,7 +311,7 @@ pub mod emission {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "{} {{\n<", self.head)?;
             for var in &self.variables {
-                write!(f, "{}({}), ", var, var.variable_id)?;
+                write!(f, "{}({}), ", var, var.get_variable_id())?;
             }
             write!(f, ">\n{}\n}}", self.body)?;
             writeln!(f, " Continuations: {{")?;
@@ -356,8 +326,8 @@ pub mod emission {
     //or means going in broadness
     #[derive(Debug, Clone)]
     pub enum Semidet {
-        Unify(parser::Variable, parser::Variable),
-        Structure(parser::Variable, parser::Sentence),
+        Unify(Variable, Variable),
+        Structure(Variable, parser::Sentence),
     }
 
     impl fmt::Display for Semidet {
