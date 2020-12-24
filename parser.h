@@ -61,11 +61,12 @@ typedef struct {
 
 
 typedef struct token Token;
+typedef union oracle_item OracleItem;
 
 void consult_file(const char * filename, int * tokens_size);
 
 void clause_parse(Clause * output, Token** tokens, const int tokens_size, int * tokens_counter,
-             int * oracle, const int oracle_size, int * oracle_counter, int * varset);
+             OracleItem * oracle, const int oracle_size, int * oracle_counter, int * varset);
 
 void clause_print(Clause * cl);
 
@@ -76,5 +77,5 @@ Clause NULL_CLAUSE = {0, 0, 0};//this is embarassingly hard to do in rust
 
 char * file;
 char * arena_base;
-int * oracle_base;
+OracleItem * oracle_base;
 Token ** tokens;

@@ -35,11 +35,10 @@ typedef enum {
 } KeywordType;
 
 
-
-typedef struct token {
+struct token {
   TokenType token_type;
   Context context;
-} Token;
+};
 
 
 typedef struct {
@@ -215,14 +214,14 @@ char * file;
 Token ** tokens;
 
 unsigned long oracle_current = 0;
-int * oracle_base = NULL;
+OracleItem * oracle_base = NULL;
 long oracle_capacity = 0;
 
 
 //memory allocation
 unsigned long arena_current = 0;
 char * arena_base = NULL;
-long arena_capacity = 0;
+unsigned long arena_capacity = 0;
 
 void * arenalloc(size_t size){
   if (!arena_base){
@@ -426,18 +425,67 @@ for (int i = 0; i < fsize+1; i++) {
 
 
 #include <assert.h>
+typedef enum {
+              OI_SENTENCE,
+              OI_LOGIC_VERB,
+              OI_CLAUSE
+} OIType;
 
+typedef struct {
+  OIType tag;
+  int name_size;
+  int elements_size;
+} OISentence;
+
+typedef struct {
+  OIType tag;
+  int variant;
+  int elements_size;
+} OILogicVerb;
+
+typedef struct {
+  OIType tag;
+  int variant;
+} OIClause;
+
+union oracle_item {
+  OISentence sentence;
+  OILogicVerb logic_verb;
+  OIClause clause;
+};
+
+void print_oracle_item(OracleItem * item){
+  switch(item->sentence.tag){
+  case OI_SENTENCE :{
+    printf("[Sentence]");
+  }
+    break;
+  case OI_LOGIC_VERB :{
+    printf("[Logic verb]");
+  }
+    break;
+  case OI_CLAUSE :{
+    printf("[Clause]");
+  }
+    break;
+  }
+
+}
 
 
 void sentence_parse(Sentence * output, Token** tokens, const int tokens_size, int * tokens_counter,
-                          int * oracle, const int oracle_size, int * oracle_counter, int * varset){
+                          OracleItem * oracle, const int oracle_size, int * oracle_counter, int * varset){
   (*oracle_counter)++;
-  const int name_size = oracle[*oracle_counter];
+
+  OISentence oracle_item = oracle[*oracle_counter].sentence;
+  assert(oracle_item.tag == OI_SENTENCE);
+  
+  const int name_size = oracle_item.name_size;
   
   char* name = arenalloc(sizeof(char)*(name_size+1));
   int name_counter = 0;
-  (*oracle_counter)++;
-  int elements_size = oracle[*oracle_counter];
+  
+  int elements_size = oracle_item.elements_size;
   Sentence * elements = arenalloc(sizeof(Sentence)*elements_size);
   int elements_counter = 0;
 
@@ -542,16 +590,19 @@ void sentence_parse(Sentence * output, Token** tokens, const int tokens_size, in
 
 
 void sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
-                       int * oracle, const int oracle_size, int * oracle_counter){
+                       OracleItem * oracle, const int oracle_size, int * oracle_counter){
 
   assert(tokens[*tokens_counter]->token_type == T_KEYWORD && ((Keyword *)tokens[*tokens_counter])->keyword == K_ANGLE_LEFT);
+  
   (*tokens_counter)++;
   (*oracle_counter)++;
-  int * name_counter = oracle_base + (*oracle_counter);
+  OISentence * oracle_item = &(oracle_base + (*oracle_counter))->sentence;
+  oracle_item->tag = OI_SENTENCE; 
+  
+  int *name_counter = &oracle_item->name_size;
   *name_counter = 0;
 
-  (*oracle_counter)++;
-  int * item_counter = oracle_base + (*oracle_counter);
+  int * item_counter = &oracle_item->elements_size;
   *item_counter = 0;
 
   Token * firsttoken = tokens[*tokens_counter];
@@ -603,8 +654,7 @@ void sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter
 
     if (token->token_type == T_KEYWORD && ((Keyword *)token)->keyword == K_ANGLE_RIGHT) {
       *name_counter += strlen(token->context.leading_whitespace);
-      
-      return;
+            return;
     }
 
     printf("Syntax Error: wrong token type in sentence at %i:%i in %s\n", token->context.line_number, token->context.column_number, token->context.file_name);
@@ -615,15 +665,17 @@ void sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter
 }
 
 
+
 void logic_verb_parse(LogicVerb * output, Token** tokens, const int tokens_size, int * tokens_counter,
-                          int * oracle, const int oracle_size, int * oracle_counter, int * varset){
+                          OracleItem * oracle, const int oracle_size, int * oracle_counter, int * varset){
 
-  
+
   (*oracle_counter)++;
-  assert(oracle[*oracle_counter]);
+  OILogicVerb oracle_item = oracle[*oracle_counter].logic_verb;
+  assert(oracle_item.tag == OI_LOGIC_VERB);
   
 
-  switch (oracle[*oracle_counter]){
+  switch (oracle_item.variant){
   case 1:{ //sentence
   
     
@@ -639,10 +691,10 @@ void logic_verb_parse(LogicVerb * output, Token** tokens, const int tokens_size,
   case 2:{ //and
   
     Context * context = &(tokens[*tokens_counter]->context);
-    (*oracle_counter)++;
     
     
-    int contents_length = oracle[*oracle_counter];
+    
+    int contents_length = oracle_item.elements_size;
     LogicVerb * contents = arenalloc(sizeof(LogicVerb) * contents_length);
     (*tokens_counter)++;
     for (int i = 0; i < contents_length; i++) {
@@ -667,10 +719,8 @@ void logic_verb_parse(LogicVerb * output, Token** tokens, const int tokens_size,
   case 3:{//or
   
     Context * context = &(tokens[*tokens_counter]->context);
-    (*oracle_counter)++;
-    
-    
-    int contents_length = oracle[*oracle_counter];
+        
+    int contents_length = oracle_item.elements_size;
     LogicVerb * contents = arenalloc(sizeof(LogicVerb) * contents_length);
     (*tokens_counter)++;
     for (int i = 0; i < contents_length; i++) {
@@ -698,11 +748,13 @@ void logic_verb_parse(LogicVerb * output, Token** tokens, const int tokens_size,
 }
 
 void logic_verb_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
-                       int * oracle, const int oracle_size, int * oracle_counter){
+                       OracleItem * oracle, const int oracle_size, int * oracle_counter){
 
     
   (*oracle_counter)++;
-  int * type_indicator = oracle + (*oracle_counter);
+  OILogicVerb * oracle_item = &(oracle + (*oracle_counter))->logic_verb;
+  oracle_item->tag = OI_LOGIC_VERB;
+  int * type_indicator = &oracle_item->variant;
   
   
 
@@ -713,14 +765,12 @@ void logic_verb_oracle(Token** tokens, const int tokens_size, int * tokens_count
 
    
   if (firsttoken->keyword == K_ANGLE_LEFT){
-    
     *type_indicator = 1;
     sentence_oracle(tokens, tokens_size, tokens_counter,
 		oracle, oracle_size, oracle_counter);
     return;
   } else if (firsttoken->keyword == K_CURLY_LEFT){
-    (*oracle_counter)++;
-    int * item_counter = oracle + (*oracle_counter);
+    int * item_counter = &oracle_item->elements_size;
     *item_counter = 1;
     (*tokens_counter)++;
     logic_verb_oracle(tokens, tokens_size, tokens_counter,
@@ -775,10 +825,13 @@ void logic_verb_oracle(Token** tokens, const int tokens_size, int * tokens_count
 
 
 
+
 void clause_parse(Clause * output, Token** tokens, const int tokens_size, int * tokens_counter,
-                          int * oracle, const int oracle_size, int * oracle_counter, int * varset){
+                          OracleItem * oracle, const int oracle_size, int * oracle_counter, int * varset){
   (*oracle_counter)++;
-  int kind = oracle[*oracle_counter];
+  OIClause oracle_item = oracle[*oracle_counter].clause;
+  assert(oracle_item.tag == OI_CLAUSE);
+  int kind = oracle_item.variant;
   Sentence * head = arenalloc(sizeof(Sentence));
   sentence_parse(head, tokens, tokens_size, tokens_counter,
                    oracle, oracle_size, oracle_counter, varset);
@@ -810,10 +863,12 @@ void clause_parse(Clause * output, Token** tokens, const int tokens_size, int * 
 
 
 void clause_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
-                       int * oracle, const int oracle_size, int * oracle_counter){
+                       OracleItem * oracle, const int oracle_size, int * oracle_counter){
   (*oracle_counter)++;
-  
-  int * kind = oracle_base + (*oracle_counter);
+
+  OIClause * oracle_item = &(oracle + (*oracle_counter))->clause;
+  oracle_item->tag = OI_CLAUSE;
+  int * kind = &oracle_item->variant;
   sentence_oracle(tokens, tokens_size, tokens_counter,
 		oracle, oracle_size, oracle_counter);
   (*tokens_counter)++;
@@ -832,6 +887,47 @@ void clause_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
     }
   
 }
+
+
+
+
+//code related to action/choice system
+typedef enum {
+              E_INITIAL,
+              E_EARLY_ACTION,
+              E_CHOICE,
+              E_LATE_ACTION
+} ElementType;
+
+typedef struct {
+  ElementType type;
+  Sentence name;
+  Sentence description;
+  Sentence * preconds;
+  bool * preconds_polarity;
+  int preconds_length;
+  LogicVerb logic;
+  Sentence * effects;
+  bool * effects_polarity;
+  int effects_length;
+  int priority;
+  Sentence deck;
+  Sentence next_deck;
+
+} Element;
+
+typedef struct {
+  Sentence s;
+  bool remove;
+} AddRemSentence;
+
+//void ar_sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
+//                        int * oracle, const int oracle_size, int * oracle_counter){
+  
+
+                          //}
+
+
 #include <errno.h>
 
 long load_file(const char * filename){
@@ -877,7 +973,7 @@ void consult_file(const char * filename, int * tokens_size){
   }
   
   
-  oracle_capacity =  sizeof(int) * (*tokens_size);
+  oracle_capacity =  sizeof(OracleItem) * (*tokens_size);
   oracle_base = malloc(arena_capacity);
   
   {
@@ -891,8 +987,8 @@ void consult_file(const char * filename, int * tokens_size){
       tokens_counter++;
     }
     
-    for (int i = 0; i < tokens_counter; i++){
-      printf("%i ", oracle_base[i]);
+    for (int i = 1; i <= oracle_counter; i++){
+      print_oracle_item(oracle_base + i);
     }
     
     printf("\n");
@@ -900,33 +996,6 @@ void consult_file(const char * filename, int * tokens_size){
   
 
 }
-
-
-//int main(int argc, char **argv){
-// 
-// 
-//  char * filename = "test_4.wg";
-//  int tokens_size = 0;
-//  consult_file(filename, &tokens_size);
-// {
-//   Clause cl;
-//   int tokens_counter = 0;
-//   int oracle_counter = 0;
-//   int varset = 0;
-//   while (tokens_counter < tokens_size){
-//     clause_parse(&cl, tokens, tokens_size, &tokens_counter,
-//                  oracle_base, oracle_current, &oracle_counter, &varset);
-//     clause_print(&cl);
-//     printf("\n");
-//     tokens_counter++;
-// 
-//   }
-// 
-// }
-// 
-// globals_free();
-// 
-//}
 
 
 
