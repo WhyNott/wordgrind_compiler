@@ -246,7 +246,6 @@ pub fn parse_clause(
     tokens_counter: &mut i32,
     tokens_size: &i32,
     oracle_counter: &mut i32,
-    varset: &mut i32,
 ) -> Clause {
     let oracle_size = 0; //I have a theory that this actually doesn't matter
     let mut clause: parser_c::Clause;
@@ -262,63 +261,26 @@ pub fn parse_clause(
             parser_c::oracle_base,
             oracle_size,
             oracle_counter,
-            varset,
         );
     }
     rustify_clause(&clause, &mut BTreeMap::new())
 }
 
-pub fn consult_file(filename: &str) -> BTreeMap<(String, i32), Clause> {
-    let mut tokens_size = 0;
-    tokenize_file(filename, &mut tokens_size);
-    let mut tokens_counter = 0;
-    let mut oracle_counter = 0;
-
-    let mut map: BTreeMap<(String, i32), Vec<(Clause, i32)>> = BTreeMap::new();
-
-    while tokens_counter < tokens_size {
-        let mut varset = 0;
-
-        let clause = parse_clause(
-            &mut tokens_counter,
-            &tokens_size,
-            &mut oracle_counter,
-            &mut varset,
-        );
-
-        tokens_counter += 1;
-        let arity = clause.head.elements.len() as i32;
-        let cl_name = clause.head.name.clone();
-
-        let key = (cl_name, arity);
-        if map.contains_key(&key) {
-            map.get_mut(&key)
-                .expect("404: not found")
-                .push((clause, varset));
-        } else {
-            map.insert(key, vec![(clause, varset)]);
-        }
-    }
-
-    clean_up_memory();
-    join_clauses_of_same_predicate(&map)
-}
-
 //since now the variable id's are unique file-wise, there is no need for all this logic for getting the highest varset, etc
 
 fn join_clauses_of_same_predicate(
-    separate_clauses_by_predicate: &BTreeMap<(String, i32), Vec<(Clause, i32)>>,
+    separate_clauses_by_predicate: &BTreeMap<(String, i32), Vec<Clause>>,
 ) -> BTreeMap<(String, i32), Clause> {
     let mut joined_clause_by_predicate: BTreeMap<(String, i32), Clause> = BTreeMap::new();
     for (pred_id, separate_clauses) in separate_clauses_by_predicate.iter() {
         if separate_clauses.len() == 1 {
-            joined_clause_by_predicate.insert(pred_id.clone(), separate_clauses[0].0.clone());
+            joined_clause_by_predicate.insert(pred_id.clone(), separate_clauses[0].clone());
         } else {
             let (name, arity) = pred_id;
 
             let mut joined_clause_head_args = Vec::with_capacity(*arity as usize);
 
-            let joined_clause_context = separate_clauses[0].0.context;
+            let joined_clause_context = separate_clauses[0].context;
 
             for i in 0..*arity {
                 joined_clause_head_args.push(Term::Variable(new_variable(
@@ -335,7 +297,7 @@ fn join_clauses_of_same_predicate(
             let mut disjunction: Vec<LogicVerb> =
                 Vec::with_capacity(separate_clauses.len() as usize);
 
-            for (clause, _) in separate_clauses {
+            for clause in separate_clauses {
                 let mut clause_as_disjunct = Vec::with_capacity(*arity as usize);
 
                 for (head_arg, joined_head_arg) in clause
@@ -408,6 +370,126 @@ fn join_clauses_of_same_predicate(
         }
     }
     joined_clause_by_predicate
+}
+
+#[derive(Debug, Clone)]
+pub struct Parameters {
+    pub preconds: Vec<(Term, bool)>,
+    pub effects: Vec<(Term, bool)>,
+    pub description: Option<Term>,
+    pub logic: Option<LogicVerb>,
+}
+
+fn rustify_parameters(
+    param: *const parser_c::Parameters,
+    varset: &mut BTreeMap<String, i32>,
+) -> Parameters {
+    let old_preconds: &[parser_c::AddRemSentence];
+    let preconds_length;
+    let old_effects: &[parser_c::AddRemSentence];
+    let effects_length;
+    let description;
+    let logic;
+    unsafe {
+        preconds_length = (*param).preconds_length as usize;
+        old_preconds = slice::from_raw_parts((*param).preconds, preconds_length);
+        effects_length = (*param).effects_length as usize;
+        old_effects = slice::from_raw_parts((*param).effects, effects_length);
+        description = if (*param).description.is_null() {
+            None
+        } else {
+            Some(rustify_sentence((*param).description, varset))
+        };
+        logic = if (*param).description.is_null() {
+            None
+        } else {
+            Some(rustify_logic_verb((*param).logic, varset))
+        };
+    }
+    let mut preconds = Vec::with_capacity(preconds_length);
+    for precond in old_preconds {
+        preconds.push((rustify_sentence(&precond.s, varset), precond.remove));
+    }
+    let mut effects = Vec::with_capacity(effects_length);
+    for effect in old_effects {
+        effects.push((rustify_sentence(&effect.s, varset), effect.remove));
+    }
+
+    Parameters {
+        preconds,
+        effects,
+        description,
+        logic,
+    }
+}
+
+//I am still not sure if these shouldn't just be one data structure with union as a tag
+#[derive(Debug, Clone)]
+pub enum Element {
+    Action {
+        name: Sentence,
+        priority: i32,
+        parameters: Parameters,
+        deck: Sentence,
+        next_deck: Option<Sentence>,
+    },
+    EarlyAction {
+        name: Sentence,
+        priority: i32,
+        parameters: Parameters,
+        deck: Sentence,
+        next_deck: Option<Sentence>,
+    },
+    Choice {
+        name: Sentence,
+        priority: i32,
+        parameters: Parameters,
+        deck: Sentence,
+        next_deck: Option<Sentence>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct InitialState {
+    pub init_state: Vec<(Sentence, bool)>,
+    pub init_description: Option<Sentence>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Deck {
+    pub early_actions: Vec<Element>,
+    pub choices: Vec<Element>,
+    pub late_actions: Vec<Element>,
+}
+//BTreeMap<String, Deck>
+
+pub fn consult_file(filename: &str) -> BTreeMap<(String, i32), Clause> {
+    let mut tokens_size = 0;
+    tokenize_file(filename, &mut tokens_size);
+    let mut tokens_counter = 0;
+    let mut oracle_counter = 0;
+
+    let mut map: BTreeMap<(String, i32), Vec<Clause>> = BTreeMap::new();
+
+    //todo: this code should recognize tp_clause, tp_deck_open, tp_deck_close, tp_initial and tp_element
+    while tokens_counter < tokens_size {
+        oracle_counter += 1;
+        let clause = parse_clause(&mut tokens_counter, &tokens_size, &mut oracle_counter);
+
+        tokens_counter += 1;
+        let arity = clause.head.elements.len() as i32;
+        let cl_name = clause.head.name.clone();
+
+        let key = (cl_name, arity);
+        if map.contains_key(&key) {
+            map.get_mut(&key).expect("404: not found").push(clause);
+        } else {
+            map.insert(key, vec![clause]);
+        }
+    }
+
+    clean_up_memory();
+    join_clauses_of_same_predicate(&map)
 }
 
 pub fn clean_up_memory() {
