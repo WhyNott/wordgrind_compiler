@@ -41,7 +41,7 @@ pub fn rustify_context(context: *const parser_c::Context) -> Context {
 use std::fmt;
 #[derive(Debug, Clone)]
 pub struct Sentence {
-    pub name: String,
+    pub name: Atom,
     pub elements: Vec<Term>,
     pub context: Context,
 }
@@ -63,6 +63,18 @@ impl fmt::Display for Sentence {
 pub enum Term {
     Sentence(Sentence),
     Variable(Variable),
+}
+
+impl Term {
+    fn sentence_name(&self) -> Atom {
+        match self {
+            Term::Sentence(s) => s.name,
+
+            Term::Variable(_) => {
+                panic!("Attempted to get a sentence name of an unbound term!")
+            }
+        }
+    }
 }
 
 impl fmt::Display for Term {
@@ -124,7 +136,7 @@ pub fn rustify_sentence(
             let context = rustify_context((*sentence).context);
 
             Term::Sentence(Sentence {
-                name,
+                name: new_atom(&name),
                 elements: elements_new,
                 context,
             })
@@ -235,12 +247,12 @@ pub fn rustify_clause(cl: *const parser_c::Clause, varset: &mut BTreeMap<String,
     }
 }
 
-pub fn tokenize_file<'a>(filename: &'a str, x: &'a mut i32) {
+pub fn tokenize_file<'a>(filename: &'a str, x: &'a mut i32) -> i32 {
     let c_filename = CString::new(filename).expect("CString::new failed");
-    unsafe {
-        parser_c::consult_file(c_filename.as_ptr() as *mut i8, x);
-    };
+    unsafe { parser_c::consult_file_oracle(c_filename.as_ptr() as *mut i8, x) }
 }
+
+use std::mem::MaybeUninit;
 
 pub fn parse_clause(
     tokens_counter: &mut i32,
@@ -248,13 +260,12 @@ pub fn parse_clause(
     oracle_counter: &mut i32,
 ) -> Clause {
     let oracle_size = 0; //I have a theory that this actually doesn't matter
-    let mut clause: parser_c::Clause;
+    let clause;
 
     unsafe {
-        clause = parser_c::NULL_CLAUSE;
-
+        let mut mu_clause = MaybeUninit::<parser_c::Clause>::zeroed();
         parser_c::clause_parse(
-            &mut clause,
+            mu_clause.as_mut_ptr(),
             parser_c::tokens,
             *tokens_size,
             tokens_counter,
@@ -262,6 +273,7 @@ pub fn parse_clause(
             oracle_size,
             oracle_counter,
         );
+        clause = mu_clause.assume_init();
     }
     rustify_clause(&clause, &mut BTreeMap::new())
 }
@@ -269,12 +281,12 @@ pub fn parse_clause(
 //since now the variable id's are unique file-wise, there is no need for all this logic for getting the highest varset, etc
 
 fn join_clauses_of_same_predicate(
-    separate_clauses_by_predicate: &BTreeMap<(String, i32), Vec<Clause>>,
-) -> BTreeMap<(String, i32), Clause> {
-    let mut joined_clause_by_predicate: BTreeMap<(String, i32), Clause> = BTreeMap::new();
+    separate_clauses_by_predicate: &BTreeMap<(Atom, i32), Vec<Clause>>,
+) -> BTreeMap<(Atom, i32), Clause> {
+    let mut joined_clause_by_predicate: BTreeMap<(Atom, i32), Clause> = BTreeMap::new();
     for (pred_id, separate_clauses) in separate_clauses_by_predicate.iter() {
         if separate_clauses.len() == 1 {
-            joined_clause_by_predicate.insert(pred_id.clone(), separate_clauses[0].clone());
+            joined_clause_by_predicate.insert(*pred_id, separate_clauses[0].clone());
         } else {
             let (name, arity) = pred_id;
 
@@ -290,7 +302,7 @@ fn join_clauses_of_same_predicate(
                 )));
             }
             let joined_head = Sentence {
-                name: name.to_string(),
+                name: *name,
                 elements: joined_clause_head_args.clone(),
                 context: joined_clause_context,
             };
@@ -307,7 +319,7 @@ fn join_clauses_of_same_predicate(
                     .zip(joined_clause_head_args.iter())
                 {
                     clause_as_disjunct.push(LogicVerb::Sentence(Sentence {
-                        name: "{} = {}".to_string(),
+                        name: new_atom("{} = {}"),
                         elements: vec![head_arg.clone(), joined_head_arg.clone()],
                         context: match head_arg {
                             Term::Sentence(Sentence { context, .. }) => *context,
@@ -423,36 +435,96 @@ fn rustify_parameters(
     }
 }
 
-//I am still not sure if these shouldn't just be one data structure with union as a tag
 #[derive(Debug, Clone)]
-pub enum Element {
-    Action {
-        name: Sentence,
-        priority: i32,
-        parameters: Parameters,
-        deck: Sentence,
-        next_deck: Option<Sentence>,
-    },
-    EarlyAction {
-        name: Sentence,
-        priority: i32,
-        parameters: Parameters,
-        deck: Sentence,
-        next_deck: Option<Sentence>,
-    },
-    Choice {
-        name: Sentence,
-        priority: i32,
-        parameters: Parameters,
-        deck: Sentence,
-        next_deck: Option<Sentence>,
-    },
+pub enum ElementType {
+    Action,
+    EarlyAction,
+    Choice,
+}
+
+#[derive(Debug, Clone)]
+pub struct Element {
+    tag: ElementType,
+    name: Term,
+    priority: i32,
+    parameters: Parameters,
+    next_deck: Option<Atom>,
+}
+
+fn rustify_element(
+    element: *const parser_c::Element,
+    varset: &mut BTreeMap<String, i32>,
+) -> (Element, Option<Atom>) {
+    let tag;
+    let name;
+    let priority;
+    let parameters;
+    let deck;
+    let next_deck;
+
+    unsafe {
+        tag = match (*element).type_ {
+            parser_c::ElementType_E_EARLY_ACTION => ElementType::EarlyAction,
+            parser_c::ElementType_E_CHOICE => ElementType::Choice,
+            parser_c::ElementType_E_LATE_ACTION => ElementType::Action,
+            _ => panic!("Incorrect element type!"),
+        };
+        name = rustify_sentence((*element).name, varset);
+        priority = (*element).priority;
+        parameters = rustify_parameters((*element).params, varset);
+        deck = if (*element).deck.is_null() {
+            None
+        } else {
+            Some(rustify_sentence((*element).deck, varset).sentence_name())
+        };
+        next_deck = if (*element).next_deck.is_null() {
+            None
+        } else {
+            Some(rustify_sentence((*element).next_deck, varset).sentence_name())
+        };
+    }
+
+    (Element {
+        tag,
+        name,
+        priority,
+        parameters,
+        next_deck,
+    }, deck)
 }
 
 #[derive(Debug, Clone)]
 pub struct InitialState {
-    pub init_state: Vec<(Sentence, bool)>,
-    pub init_description: Option<Sentence>,
+    pub init_state: Vec<(Term, bool)>,
+    pub init_description: Option<Term>,
+}
+
+fn rustify_initial_state(
+    initial: *const parser_c::InitialState,
+    varset: &mut BTreeMap<String, i32>,
+) -> InitialState {
+    let mut init_state;
+    let old_init_state;
+    let init_description;
+    unsafe {
+        let state_len = (*initial).state_length as usize;
+        init_state = Vec::with_capacity(state_len);
+        old_init_state = slice::from_raw_parts((*initial).init_state, state_len);
+        init_description = if (*initial).init_description.is_null() {
+            None
+        } else {
+            Some(rustify_sentence((*initial).init_description, varset))
+        };
+    }
+
+    for state in old_init_state {
+        init_state.push((rustify_sentence(&state.s, varset), state.remove));
+    }
+
+    InitialState {
+        init_state,
+        init_description,
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -461,30 +533,146 @@ pub struct Deck {
     pub choices: Vec<Element>,
     pub late_actions: Vec<Element>,
 }
-//BTreeMap<String, Deck>
 
-pub fn consult_file(filename: &str) -> BTreeMap<(String, i32), Clause> {
+
+pub enum TopLevelItem {
+    Clause,
+    DeckOpen,
+    DeckClose,
+    Initial,
+    Element,
+}
+
+pub fn next_toplevel_item(oracle_counter: &mut i32) -> TopLevelItem {
+    unsafe {
+        let item_token = (*(parser_c::oracle_base.offset(*oracle_counter as isize))).toplevel;
+        if item_token.tag != parser_c::OIType_OI_TOPLEVEL {
+            panic!("Wrong token tag!");
+        };
+        match item_token.toplevel_tag {
+            parser_c::ToplevelType_TP_CLAUSE => TopLevelItem::Clause,
+            parser_c::ToplevelType_TP_DECK_OPEN => TopLevelItem::DeckOpen,
+            parser_c::ToplevelType_TP_DECK_CLOSE => TopLevelItem::DeckClose,
+            parser_c::ToplevelType_TP_INITIAL => TopLevelItem::Initial,
+            parser_c::ToplevelType_TP_ELEMENT => TopLevelItem::Element,
+            _ => panic!("Incorrect enum type!"),
+        }
+    }
+}
+
+pub struct Document {
+    pub initial_conditions: Option<InitialState>,
+    pub decks: BTreeMap<Atom, Deck>,
+    pub predicates: BTreeMap<(Atom, i32), Clause>
+}
+
+pub fn consult_file(filename: &str) -> BTreeMap<(Atom, i32), Clause> {
     let mut tokens_size = 0;
     tokenize_file(filename, &mut tokens_size);
     let mut tokens_counter = 0;
     let mut oracle_counter = 0;
-
-    let mut map: BTreeMap<(String, i32), Vec<Clause>> = BTreeMap::new();
+    let default = new_atom("default");
+    let mut current_deck = default;
+    let mut initial = None;
+    let mut map: BTreeMap<(Atom, i32), Vec<Clause>> = BTreeMap::new();
+    let mut map_decks: BTreeMap<Atom, Deck> = BTreeMap::new();
 
     //todo: this code should recognize tp_clause, tp_deck_open, tp_deck_close, tp_initial and tp_element
+    //all thats left now is deck open and close!
     while tokens_counter < tokens_size {
         oracle_counter += 1;
-        let clause = parse_clause(&mut tokens_counter, &tokens_size, &mut oracle_counter);
+        let next = next_toplevel_item(&mut oracle_counter);
+        match next {
+            TopLevelItem::Clause => {
+                assert!(current_deck == default);
+                let clause = parse_clause(&mut tokens_counter, &tokens_size, &mut oracle_counter);
 
-        tokens_counter += 1;
-        let arity = clause.head.elements.len() as i32;
-        let cl_name = clause.head.name.clone();
+                tokens_counter += 1;
+                let arity = clause.head.elements.len() as i32;
+                let cl_name = clause.head.name;
 
-        let key = (cl_name, arity);
-        if map.contains_key(&key) {
-            map.get_mut(&key).expect("404: not found").push(clause);
-        } else {
-            map.insert(key, vec![clause]);
+                let key = (cl_name, arity);
+                if map.contains_key(&key) {
+                    map.get_mut(&key).expect("404: not found").push(clause);
+                } else {
+                    map.insert(key, vec![clause]);
+                }
+            },
+
+            TopLevelItem::Initial => {
+                initial = unsafe {
+                    let mut mu_initial = MaybeUninit::<parser_c::InitialState>::zeroed();
+                    parser_c::initial_parse(
+                        mu_initial.as_mut_ptr(),
+                        parser_c::tokens,
+                        tokens_size,
+                        &mut tokens_counter,
+                        parser_c::oracle_base,
+                        0,
+                        &mut oracle_counter,
+                    );
+                    Some(rustify_initial_state(&mu_initial.assume_init(), &mut BTreeMap::new()))               
+                };
+                tokens_counter += 1;
+            },
+            
+            TopLevelItem::Element => {
+                let (element, el_deck) = unsafe {
+                    let mut mu_element = MaybeUninit::<parser_c::Element>::zeroed();
+                    parser_c::element_parse(
+                        mu_element.as_mut_ptr(),
+                        parser_c::tokens,
+                        tokens_size,
+                        &mut tokens_counter,
+                        parser_c::oracle_base,
+                        0,
+                        &mut oracle_counter,
+                    );
+                    rustify_element(&mu_element.assume_init(), &mut BTreeMap::new())               
+                };
+                tokens_counter += 1;
+                
+                let element_deck = match el_deck {
+                    None => {
+                        current_deck
+                    }
+                    Some(deck) => {
+                        assert!(current_deck == default);
+                        deck
+                    }
+                };
+                //todo: write all that code that actually inserts these elements into the map
+                //inserts if it exists, create new deck otherwise
+                if map_decks.contains_key(&element_deck) {
+                    let deck = map_decks.get_mut(&element_deck).expect("404: not found");
+                    match element.tag {
+                        ElementType::Action => {
+                            deck.late_actions.push(element)
+                        },
+                        ElementType::EarlyAction => {
+                             deck.early_actions.push(element)
+                        },
+                        ElementType::Choice => {
+                             deck.choices.push(element)
+                        },
+                    }
+                } else {
+                    let mut deck = Deck {early_actions: Vec::new(), late_actions: Vec::new(), choices: Vec::new()};
+                    match element.tag {
+                        ElementType::Action => {
+                            deck.late_actions.push(element)
+                        },
+                        ElementType::EarlyAction => {
+                             deck.early_actions.push(element)
+                        },
+                        ElementType::Choice => {
+                             deck.choices.push(element)
+                        },
+                    }
+                    map_decks.insert(element_deck, deck);
+                }
+            }
+            _ => panic!("not implemented yet"),
         }
     }
 

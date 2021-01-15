@@ -1,10 +1,10 @@
 pub mod explicit_uni {
     use crate::parser;
-    use crate::tl_database::{new_unnamed_variable, new_variable, Context, Variable};
+    use crate::tl_database::{new_unnamed_variable, new_variable, Context, Variable, Atom, new_atom};
 
     #[derive(Debug, Clone)]
     pub struct Sentence {
-        pub name: String,
+        pub name: Atom,
         pub elements: Vec<Variable>,
         pub context: Context,
     }
@@ -23,6 +23,7 @@ pub mod explicit_uni {
         }
     }
 
+   
     #[derive(Debug, Clone)]
     pub enum LogicVerb {
         Sentence(Sentence),
@@ -141,7 +142,7 @@ pub mod explicit_uni {
     fn process_body(input: parser::LogicVerb, output: &mut Vec<LogicVerb>) {
         match input {
             parser::LogicVerb::Sentence(s) => {
-                if s.name == "{} = {}" {
+                if s.name == new_atom("{} = {}") {
                     assert!(s.elements.len() == 2);
                     let mut it = s.elements.into_iter();
                     let a = it.next().expect("Sentence is empty");

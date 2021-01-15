@@ -443,77 +443,7 @@ for (int i = 0; i < fsize+1; i++) {
 
 
 #include <assert.h>
-typedef enum {
-              OI_SENTENCE,
-              OI_LOGIC_VERB,
-              OI_CLAUSE,
-              OI_ITEMS,
-              OI_PARAMETERS,
-              OI_ELEMENT,
-              OI_INITIAL,
-              OI_TOPLEVEL
-              
-} OIType;
 
-typedef struct {
-  OIType tag;
-  int name_size;
-  int elements_size;
-} OISentence;
-
-typedef struct {
-  OIType tag;
-  int variant;
-  int elements_size;
-} OILogicVerb;
-
-typedef struct {
-  OIType tag;
-  int variant;
-} OIClause;
-
-typedef struct {
-  OIType tag;
-  int elements_size;
-} OIItems;
-
-typedef struct {
-  OIType tag;
-} OIParameters;
-
-typedef struct {
-  OIType tag;
-  ElementType element_tag;
-} OIElement;
-
-typedef struct {
-  OIType tag;
-  bool has_description;
-} OIInitial;
-
-typedef enum {
-              TP_CLAUSE,
-              TP_DECK_OPEN,
-              TP_DECK_CLOSE,
-              TP_INITIAL,
-              TP_ELEMENT
-} ToplevelType;
-
-typedef struct {
-  OIType tag;
-  ToplevelType toplevel_tag;
-} OIToplevel;
-
-union oracle_item {
-  OISentence sentence;
-  OILogicVerb logic_verb;
-  OIClause clause;
-  OIItems items;
-  OIParameters parameters;
-  OIElement element;
-  OIInitial initial;
-  OIToplevel toplevel;
-};
 
 void print_oracle_item(OracleItem * item){
   //TODO: make this display relevant elements
@@ -1371,7 +1301,7 @@ long load_file(const char * filename){
 
 }
 
-void consult_file(const char * filename, int * tokens_size){
+int consult_file_oracle(const char * filename, int * tokens_size){
   
   long fsize = load_file(filename);
   
@@ -1457,6 +1387,8 @@ void consult_file(const char * filename, int * tokens_size){
     }
     
     printf("\n");
+
+    return oracle_counter;
   }
   
 

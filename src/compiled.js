@@ -1,17 +1,4 @@
 const predicates = {
-    '{} and {} are paired by {}': (head_A, head_B, head_Drink, index, cont_0) => {
-        new_backup_frame();
-        dc.add_new_step('<{} and {} are paired by {}> Entry' + (index == 1 ? '' : index));
-
-        const cont_1 = () => {
-            predicates['{} drinks {}'](head_B, head_Drink, index + 1, cont_0);
-
-        };
-        predicates['{} drinks {}'](head_A, head_Drink, index + 1, cont_1);
-
-        remove_backup_frame();
-    },
-
     '{} drinks {}': (head_0, head_1, index, cont_0) => {
         new_backup_frame();
         dc.add_new_step('<{} drinks {}> Entry' + (index == 1 ? '' : index));
@@ -153,6 +140,19 @@ const predicates = {
         trail.restore_choice_point();
         dc.add_new_step('backup restored');
         trail.remove_choice_point();
+
+        remove_backup_frame();
+    },
+
+    '{} and {} are paired by {}': (head_A, head_B, head_Drink, index, cont_0) => {
+        new_backup_frame();
+        dc.add_new_step('<{} and {} are paired by {}> Entry' + (index == 1 ? '' : index));
+
+        const cont_1 = () => {
+            predicates['{} drinks {}'](head_B, head_Drink, index + 1, cont_0);
+
+        };
+        predicates['{} drinks {}'](head_A, head_Drink, index + 1, cont_1);
 
         remove_backup_frame();
     },
