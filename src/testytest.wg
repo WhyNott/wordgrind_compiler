@@ -1,0 +1,10 @@
+<<john> drinks <martini>>
+<<mary> drinks <gin>>
+<<susan> drinks <vodka>>
+<<john> drinks <gin>>
+<<fred> drinks <gin>>
+
+<?A and ?B are paired by ?Drink> if {
+    <?A drinks ?Drink> and
+    <?B drinks ?Drink>
+}

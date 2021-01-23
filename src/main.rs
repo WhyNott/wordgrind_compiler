@@ -10,13 +10,8 @@ use std::{
 };
 
 fn main() {
-    let test_context = tl_database::new_context("Sup".to_string(), 0, 0, "world.wg".to_string());
-    let test_variable = tl_database::new_variable("Hi".to_string(), test_context, false);
-
-    test_variable.set_is_head(true);
-
-    println!("Hello, {}!", test_variable.get_is_head());
-    let filename = "testytest.wg";
+    
+    let filename = "decks.wg";
     let file_results = parser::consult_file(filename);
 
     let write_file = File::create("compiled.js").unwrap();

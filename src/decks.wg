@@ -63,14 +63,15 @@ Choice <Drop ?Item.>
                 and removes <Player has ?Item>
 
 Choice <Use computer.>
+       leads into
+                 <Computer>     
        available when
                  <Player is in <Living Room>>
-       leads into
-                 <Computer>
+       
 
 
 In <Computer>
-   Early action <Things appear on the monitor.> avaiable when
+   Early action <Things appear on the monitor.> available when
          not <<Things appear on the monitor.> happened _ turns ago> 
          displays <Things appear on the monitor.>        
 
@@ -78,7 +79,7 @@ In <Computer>
 
    Choice <Browse the internet.> displays <You spend some time aimlessly wandering on the internet.>
 
-   Choice <Chat with a friend.> displays <You start up the chat client.> leads to <Chat>       
+   Choice <Chat with a friend.> leads to <Chat>  displays <You start up the chat client.> 
 
 End <Computer>
 
@@ -88,7 +89,7 @@ In <Chat>
    Choice <Argue about politics.>
    Choice <Send a meme.>
 
-   Action <Lol> (happens once) displays <Your friend says 'LOL'.> 
+   Action <Lol> (*happens once*) displays <Your friend says 'LOL'.> 
 End <Chat>
 
 (* So, how do I get across the idea that these things should only happen once? *)

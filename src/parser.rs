@@ -615,6 +615,49 @@ pub fn consult_file(filename: &str) -> BTreeMap<(Atom, i32), Clause> {
                 };
                 tokens_counter += 1;
             },
+
+            TopLevelItem::DeckOpen => {
+                assert!(current_deck == default);
+                tokens_counter += 1;
+                
+                let deck_name = unsafe {
+                    let mut mu_sentence = MaybeUninit::<parser_c::Sentence>::zeroed();
+                    parser_c::sentence_parse(
+                        mu_sentence.as_mut_ptr(),
+                        parser_c::tokens,
+                        tokens_size,
+                        &mut tokens_counter,
+                        parser_c::oracle_base,
+                        0,
+                        &mut oracle_counter,
+                    );
+                    new_atom(&CStr::from_ptr(mu_sentence.assume_init().name).to_str()
+                        .expect("Incorrect utf8 data in deck name"))
+                };
+                current_deck = deck_name;
+            },
+
+            TopLevelItem::DeckClose => {
+                assert!(current_deck != default);
+                tokens_counter += 1;
+                
+                let deck_name = unsafe {
+                    let mut mu_sentence = MaybeUninit::<parser_c::Sentence>::zeroed();
+                    parser_c::sentence_parse(
+                        mu_sentence.as_mut_ptr(),
+                        parser_c::tokens,
+                        tokens_size,
+                        &mut tokens_counter,
+                        parser_c::oracle_base,
+                        0,
+                        &mut oracle_counter,
+                    );
+                    new_atom(&CStr::from_ptr(mu_sentence.assume_init().name).to_str()
+                        .expect("Incorrect utf8 data in deck name"))
+                };
+                assert!(current_deck == deck_name);
+                current_deck = default;
+            },
             
             TopLevelItem::Element => {
                 let (element, el_deck) = unsafe {
@@ -641,8 +684,6 @@ pub fn consult_file(filename: &str) -> BTreeMap<(Atom, i32), Clause> {
                         deck
                     }
                 };
-                //todo: write all that code that actually inserts these elements into the map
-                //inserts if it exists, create new deck otherwise
                 if map_decks.contains_key(&element_deck) {
                     let deck = map_decks.get_mut(&element_deck).expect("404: not found");
                     match element.tag {

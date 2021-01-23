@@ -102,7 +102,7 @@ const char * KEYWORDS[] = {
                            "state",
                            "is",
                            "Action",
-                           "early",
+                           "Early",
                            "with",
                            "priority",
                            "{",
@@ -111,8 +111,8 @@ const char * KEYWORDS[] = {
                            "that",
                            "leads",
                            "to",
-                           "in",
-                           "end"
+                           "In",
+                           "End"
 };
 
 bool keyword_lookup(char * str, KeywordType * result){
@@ -621,7 +621,7 @@ void sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter
 
   assert(tokens[*tokens_counter]->token_type == T_KEYWORD && ((Keyword *)tokens[*tokens_counter])->keyword == K_ANGLE_LEFT);
   
-  (*tokens_counter)++;
+  
   (*oracle_counter)++;
   OISentence * oracle_item = &(oracle_base + (*oracle_counter))->sentence;
   oracle_item->tag = OI_SENTENCE; 
@@ -633,6 +633,7 @@ void sentence_oracle(Token** tokens, const int tokens_size, int * tokens_counter
   *item_counter = 0;
 
   Token * firsttoken = tokens[*tokens_counter];
+  (*tokens_counter)++;
 
   for (int * i = tokens_counter; *i < tokens_size; (*i)++) {
     Token * token = tokens[*i];
@@ -941,11 +942,15 @@ void items_parse(AddRemSentence * output, int * len, Token** tokens, const int t
 
     sentence_parse(&output[i].s, tokens, tokens_size, tokens_counter,
                    oracle, oracle_size, oracle_counter);
+    (*tokens_counter)++;
     if (*tokens_counter < tokens_size &&
         tokens[*tokens_counter]->token_type == T_KEYWORD &&
         ((Keyword *)tokens[*tokens_counter])->keyword == K_AND){
       (*tokens_counter)++;
-    } else assert(i == (*len)-1);
+    } else {
+      (*tokens_counter)--; //so that is fits the convention
+      assert(i == (*len)-1);
+    }
     
   }
   
@@ -959,11 +964,11 @@ void items_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
   oracle_item->tag = OI_ITEMS;
   int * item_count = &oracle_item->elements_size;
   item_count = 0;
-  (*tokens_counter)++;
+  //(*tokens_counter)++;
 
   
   while(true){
-    (*item_count)++;
+    item_count++;
 
     if (*tokens_counter < tokens_size &&
       tokens[*tokens_counter]->token_type == T_KEYWORD &&
@@ -985,6 +990,7 @@ void items_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
       (*tokens_counter)++;
       continue;
     } else {
+      (*tokens_counter)--; //so that is fits the convention
       break;
     }
   }
@@ -1057,7 +1063,6 @@ void parameters_parse(Parameters * output, Token** tokens, const int tokens_size
 void parameters_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
                        OracleItem * oracle, const int oracle_size, int * oracle_counter){
   (*oracle_counter)++;
-
   OIParameters * oracle_item = &(oracle + (*oracle_counter))->parameters;
   oracle_item->tag = OI_PARAMETERS;
   bool runloop = true;
@@ -1069,6 +1074,7 @@ void parameters_oracle(Token** tokens, const int tokens_size, int * tokens_count
         (*tokens_counter)++;
         items_oracle(tokens, tokens_size, tokens_counter,
                      oracle, oracle_size, oracle_counter);
+        (*tokens_counter)++;
       }
         break;
       case K_SUCH :{
@@ -1076,19 +1082,21 @@ void parameters_oracle(Token** tokens, const int tokens_size, int * tokens_count
         (*tokens_counter)++;
         logic_verb_oracle(tokens, tokens_size, tokens_counter,
 		oracle, oracle_size, oracle_counter);
+        (*tokens_counter)++;
       }
         break;
     case K_DISPLAYS :{
       (*tokens_counter)++;
       sentence_oracle(tokens, tokens_size, tokens_counter,
 		oracle, oracle_size, oracle_counter);
+      (*tokens_counter)++;
     }
       break;
     case K_CAUSES :{
       (*tokens_counter)++;
       items_oracle(tokens, tokens_size, tokens_counter,
                      oracle, oracle_size, oracle_counter);
-      
+      (*tokens_counter)++;
       }
       break;
     default :{
@@ -1098,7 +1106,7 @@ void parameters_oracle(Token** tokens, const int tokens_size, int * tokens_count
     }
     
   }
-  
+  (*tokens_counter)--; //so that is fits the convention
 }
 
 
@@ -1146,6 +1154,7 @@ void element_parse(Element * output, Token** tokens, const int tokens_size, int 
       (*tokens_counter)++;
       sentence_parse(output->next_deck, tokens, tokens_size, tokens_counter,
                       oracle, oracle_size, oracle_counter);
+      (*tokens_counter)++;
       break;
       
     case K_IN:
@@ -1153,6 +1162,7 @@ void element_parse(Element * output, Token** tokens, const int tokens_size, int 
       (*tokens_counter)++;
       sentence_parse(output->deck, tokens, tokens_size, tokens_counter,
                       oracle, oracle_size, oracle_counter);
+      (*tokens_counter)++;
       break;
       
     case K_WITH:
@@ -1197,7 +1207,7 @@ void element_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
   (*tokens_counter)++;
   sentence_oracle(tokens, tokens_size, tokens_counter,
                       oracle, oracle_size, oracle_counter);
-  
+  (*tokens_counter)++;
   bool runloop = true;
   while(runloop){
     assert(tokens[*tokens_counter]->token_type == T_KEYWORD);
@@ -1207,12 +1217,14 @@ void element_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
       (*tokens_counter)++;
       sentence_oracle(tokens, tokens_size, tokens_counter,
                       oracle, oracle_size, oracle_counter);
+      (*tokens_counter)++;
       break;
       
     case K_IN:
       (*tokens_counter)++;
       sentence_oracle(tokens, tokens_size, tokens_counter,
                       oracle, oracle_size, oracle_counter);
+      (*tokens_counter)++;
       break;
       
     case K_WITH:
@@ -1226,6 +1238,7 @@ void element_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
     }
     
   }
+  
   parameters_oracle(tokens, tokens_size, tokens_counter,
                       oracle, oracle_size, oracle_counter);
   
@@ -1266,13 +1279,15 @@ void initial_oracle(Token** tokens, const int tokens_size, int * tokens_counter,
   (*tokens_counter)++;
   assert(*tokens_counter < tokens_size);
   assert(tokens[*tokens_counter]->token_type == T_KEYWORD);
+  
   if (((Keyword *)tokens[*tokens_counter])->keyword == K_DISPLAYS){
+  
     oracle_item->has_description = true;
-    (*tokens_counter)++;
+    (*tokens_counter)++; 
     sentence_oracle(tokens, tokens_size, tokens_counter,
                     oracle, oracle_size, oracle_counter);
   } else {
-    oracle_item->has_description = false;
+      oracle_item->has_description = false;
   }
 }
 
@@ -1331,10 +1346,13 @@ int consult_file_oracle(const char * filename, int * tokens_size){
 
     bool inside_deck = false;
     while (tokens_counter < *tokens_size){
+      
+      
       assert(tokens[tokens_counter]->token_type == T_KEYWORD);
       OIToplevel * oracle_item = &(oracle_base + oracle_counter)->toplevel;
       oracle_item->tag = OI_TOPLEVEL;
-      
+
+      printf("%s\n", KEYWORDS[((Keyword *)tokens[tokens_counter])->keyword]);
       switch (((Keyword *)tokens[tokens_counter])->keyword){
       case K_ANGLE_LEFT:
         assert(!inside_deck);
@@ -1348,6 +1366,7 @@ int consult_file_oracle(const char * filename, int * tokens_size){
         tokens_counter++;
         sentence_oracle(tokens, *tokens_size, &tokens_counter,
                     oracle_base, oracle_current, &oracle_counter);
+        tokens_counter++;
         inside_deck = true;
         oracle_item->toplevel_tag = TP_DECK_OPEN;
         break;
@@ -1356,6 +1375,7 @@ int consult_file_oracle(const char * filename, int * tokens_size){
         tokens_counter++;
         sentence_oracle(tokens, *tokens_size, &tokens_counter,
                     oracle_base, oracle_current, &oracle_counter);
+        tokens_counter++;
         inside_deck = false;
         oracle_item->toplevel_tag = TP_DECK_CLOSE;
         break;
@@ -1377,7 +1397,7 @@ int consult_file_oracle(const char * filename, int * tokens_size){
       default:
         assert(false);
       }
-
+      
       oracle_counter++;
       
     }

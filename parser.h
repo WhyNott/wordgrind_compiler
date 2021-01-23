@@ -181,6 +181,9 @@ void element_parse(Element * output, Token** tokens, const int tokens_size, int 
 void initial_parse(InitialState * output, Token** tokens, const int tokens_size, int * tokens_counter,
               OracleItem * oracle, const int oracle_size, int * oracle_counter);
 
+void sentence_parse(Sentence * output, Token** tokens, const int tokens_size, int * tokens_counter,
+               OracleItem * oracle, const int oracle_size, int * oracle_counter);
+
 void clause_print(Clause * cl);
 
 void globals_free();
