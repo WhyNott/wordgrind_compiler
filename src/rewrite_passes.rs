@@ -139,7 +139,7 @@ pub mod explicit_uni {
         }
     }
 
-    fn process_body(input: parser::LogicVerb, output: &mut Vec<LogicVerb>) {
+    pub fn process_body(input: parser::LogicVerb, output: &mut Vec<LogicVerb>) {
         match input {
             parser::LogicVerb::Sentence(s) => {
                 if s.name == new_atom("{} = {}") {
@@ -255,7 +255,7 @@ pub mod variable_inits {
         }
     }
 
-    fn process_sentence(input: &parser::Sentence, varset: &mut BTreeSet<Variable>) {
+    pub fn process_sentence(input: &parser::Sentence, varset: &mut BTreeSet<Variable>) {
         for element in &input.elements {
             match element {
                 parser::Term::Sentence(s) => process_sentence(&s, varset),
@@ -266,7 +266,16 @@ pub mod variable_inits {
         }
     }
 
-    fn process_body(input: &explicit_uni::LogicVerb, varset: &mut BTreeSet<Variable>) {
+    pub fn process_term(input: &parser::Term, varset: &mut BTreeSet<Variable>) {
+        match input {
+            parser::Term::Sentence(s) => process_sentence(&s, varset),
+            parser::Term::Variable(v) => {
+                varset.insert(*v);
+            }
+        }   
+    }
+
+    pub fn process_body(input: &explicit_uni::LogicVerb, varset: &mut BTreeSet<Variable>) {
         use explicit_uni::LogicVerb;
 
         match input {
@@ -297,6 +306,77 @@ pub mod emission {
     use crate::rewrite_passes::explicit_uni;
     use crate::rewrite_passes::variable_inits;
     use crate::tl_database::{Context, Variable};
+    use std::collections::BTreeSet;
+    use itertools::Itertools;
+    
+     #[derive(Debug)]
+    pub struct Element {
+        pub tag: parser::ElementType,
+        pub name: parser::Sentence,
+        pub variables: Vec<Variable>,
+        pub priority: i32,
+        pub preconds: Vec<(parser::Term, bool)>,
+        pub effects: Vec<(parser::Term, bool)>,
+        pub description: Option<parser::Term>,
+        pub logic: Vec<EmissionVerb>,
+        pub next_deck: Option<parser::Term>,
+        pub options: parser::ElementOptions,
+    }
+    
+   
+    fn process_element(input:parser::Element)-> Element{
+        let mut gathered_variables = BTreeSet::new();
+        let logic = match input.logic {
+            None => vec![],
+            Some(lv) => {
+                let mut ex_uni_list = Vec::new();
+                explicit_uni::process_body(lv, &mut ex_uni_list);
+                let ex_uni : explicit_uni::LogicVerb =
+                    if ex_uni_list.len() == 1 {
+                        ex_uni_list.into_iter().next().expect("Sentence is empty")
+                    } else {
+                        explicit_uni::LogicVerb::And(ex_uni_list)
+                    };
+                variable_inits::process_body(&ex_uni, &mut gathered_variables);
+                let mut continuations = Vec::new();
+                process_body(ex_uni, &mut continuations, false);
+                continuations
+            }
+        };
+        variable_inits::process_sentence(&input.name, &mut gathered_variables);
+        for (precond, _) in &input.preconds {
+            variable_inits::process_term(precond, &mut gathered_variables);
+        }
+        for (effect, _) in &input.effects {
+            variable_inits::process_term(effect, &mut gathered_variables);
+        }
+        match &input.description{
+            None => {},
+            Some(dsc) => variable_inits::process_term(dsc, &mut gathered_variables),
+        }
+
+        match &input.next_deck{
+            None => {},
+            Some(dsc) => variable_inits::process_term(dsc, &mut gathered_variables),
+        }
+        Element {
+            tag: input.tag,
+            name: input.name,
+            variables: gathered_variables
+                        .into_iter()
+                        .unique_by(|v| v.get_variable_name())
+                        .collect(),
+            priority: input.priority,
+            preconds: input.preconds,
+            effects: input.effects,
+            description: input.description,
+            logic: logic,
+            next_deck: input.next_deck,
+            options: input.options,
+        }
+        
+    }
+    
 
     #[derive(Debug)]
     pub struct Procedure {

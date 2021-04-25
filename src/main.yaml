@@ -1,0 +1,126 @@
+
+Initial state:
+  condition:
+    - week <1>
+    - <7> action points
+    - civilisation <5>
+    - money <0>
+  displays:
+    Play me to the moon.
+
+Unique facts:
+  - week ?_
+  - <?_ action points>
+  - <civilisation ?_>
+  - <money ?_>
+
+Default:
+  Choices:
+    Stay here:
+      leads into:
+        Light world
+    Cross over:
+      leads into:
+        Dark world
+    End week:
+      available when:
+        - week ?Current
+      such that:
+        ?Current + <1> = ?Next
+      causes:
+        - <7> action points
+        - week ?Next
+        
+Light world:
+  Choices:
+    Go to work:
+      available when:
+        - ?AP action points
+        - civilisation ?Civ
+        - money ?Mon
+      such that: 
+       and:
+         - ?AP is greater than <0>
+         - ?AP - <1> = ?APNext
+         - ?Civ is shifted to <+> as ?CivNext
+         - ?Mon + <5> = ?MonNext
+      causes:
+        - ?APNext action points
+        - civilisation ?CivNext
+        - money ?MonNext
+
+#Neighbour visit:
+ # Weave:
+ #   -  >
+ #     You put on your nice suit, and try to make out anything you can about your neighbour, Mr. Mirdburrough. You can barely remember anything, lest of which whether you had actually been at this dinner before. Actually, you suspect you might have passed it by. You never had patience for socializing.
+ #     You smirk at the thought. People can talk for hours about what they would have done differently if they had a second chance, but of all the opportunities in life to retake, going to your neighbour's dinner is probably the most perverse.
+ #   - >
+ #     It turns out that Mirdburrough's house is the one on the left across the street from yours. Something about this house is giving you a strange feeling, but you can't quite place it, and in either case it's gone before you can be certain."Yes, I see it too, but don't stare." - your wife whispers into your ear.
+ #    
+ #   - "What do you mean?":
+ #       - >
+ #         Your wife gestures her nose at an old "THIS HOUSE LOOKS WEST" campaign poster, sticking from behind the shed.
+ #         "Didn't want to tell you upfront. They are really nice people, I promise." - your wife whispers.
+ #         You nod back, but this is most definitely not what made you feel uneasy.
+ #   - Nod and continue.: {}
+ #   -  >
+ #     As you approach the doorstep, Mr. Mirdburroughs and his wife come out to greet you. He is a man around sixty, with a wide face and a big nose, his wife roughly the same age. Their clothes look elegant, but strike you as slightly mismatched for some reason. You are now defnitely sure you've seen them before. After a short but warm greeting, they lead you in.
+ #     "We didn't even realize we had new neighbours until Helen met your wife in community hall last week." - said Mr. Mirdburrough, who insisted you should call him Barry. They sat you down with some tea in their living room. You notice that your seat is actually a white plastic chair with a patterned coverlet thrown across, with other chairs being similar contraptions.
+ #     "She said you guys have only moved in a few months back. That must have been around, well, we were on our cruise."
+ #
+ #   - "The cruise? Do you like to sail?":
+ #       - >
+ #         "Well, sail is maybe too strong... We like to have a nice cruise ship once every few years. We've been at it... well, basically since we got married."
+ #   - "Have you been living here for a while?": 
+ #       - >
+ #         "We've moved in a few years back. We used to live up north, Barry was a field engineer for a telecom company, actually."
+ #         Barry laughes and puts his head up. - "Oh, that was a load of bollocks. Terrible job, but every year I've been meaning to quit, they just made my salary higher. Helen said if it kept up for a while longer, I'd be the richest and most miserable engineer this side of <american place here>...."
+ #         You notice Barry drift off and a pained expression enter his face. He and Helen exchange a glance and his mood lightens up slightly.
+ #         "But yeah, we've had no regrets since coming here. I've always wanted to live near a big city, and my wife loves suburban life."
+ #   - ""
+ #
+ # Choices:
+ #   "Going back to your job as an engineer, what finally made you quit it?":
+ #     description: >-
+ #       Barry looks at his wife sadly, then turns your head to you. "Life, basically. It happened that we used to have a son, about your age, maybe five years older. Tragically, he passed on."
+ #       Your wife looks shocked. - "O my god. I'm so sorry to hear that!"
+ #       "It's okay."- said Helen.
+ #       "We sold the old house. Couldn't stay there anymore. Too many memories." - said Barry.
+ #     available when:
+ #       - Neighbour visit <4>
+ #       
+ #   "What do you do for a living here? If you don't mind me asking.":
+ #     decription: >-
+ #       "Oh, we're the lucky bunch. We just live off our retirement money." - said Barry.
+ #       "Barry's retirement money, that is." - added Helen quickly and smiled.
+ #       "What about yours?"
+ #       "Oh, retired physics teachers don't make very much."
+ #     available when:
+ #       - Neighbour visit <4>
+ #
+ #   "So, how did your cruise ship vacation go?":
+ #     description: >-
+ #       "It was splendid."
+ #     available when:
+ #       - Neighbour visit <4>
+ #       
+ #
+W#eaveTest:
+ # #example stolen from ink documentation
+ # Weave:
+ #   - "Well, Poirot? Murder or suicide?": #1
+ #       - "Murder!": #->1.1
+ #           - "And who did it?" #1.1
+ #           - "Detective-Inspector Japp!": {} #->1.1.2 
+ #           - "Captain Hastings!": {} #->1.1.2
+ #           - "Myself!": {} #->1.1.2
+ #           - "You must be joking!" #1.1.2
+ #           -  "Mon ami, I am deadly serious.": {} #->2
+ #           - "If only..." : {} #->2
+ #       - "Suicide!": #->1.2
+ #         - "Really, Poirot? Are you quite sure?" # 1.2
+ #         - "Quite sure.": {} #->2
+ #         - "It is perfectly obvious.": {} #->2
+ #         
+ #   - Mrs. Christie lowered her manuscript a moment. The rest of the writing group sat, open-mouthed. #2
+ #     

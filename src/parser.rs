@@ -1,43 +1,13 @@
 #![allow(dead_code)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-mod parser_c {
-    #![allow(non_upper_case_globals)]
-    #![allow(non_camel_case_types)]
-    #![allow(non_snake_case)]
-
-    include!(concat!(env!("OUT_DIR"), "/parser_bindings.rs"));
-}
-
-use std::ffi::CStr;
-use std::ffi::CString;
-use std::slice;
+//time to gut this thing completely.
+//Lets turn lsp on, and fix up the imminent error
 
 use crate::tl_database::{
     existing_variable, new_atom, new_context, new_variable, Atom, Context, Variable,
 };
 
-pub fn rustify_context(context: *const parser_c::Context) -> Context {
-    let leading_whitespace;
-    let line_number;
-    let column_number;
-    let file_name;
-    unsafe {
-        leading_whitespace = CStr::from_ptr((*context).leading_whitespace)
-            .to_str()
-            .expect("Incorrect utf8 data in leading_whitespace")
-            .to_string();
-        line_number = (*context).line_number;
-        column_number = (*context).column_number;
-
-        file_name = CStr::from_ptr((*context).file_name)
-            .to_str()
-            .expect("Incorrect utf8 data in file_name")
-            .to_string();
-    }
-
-    new_context(leading_whitespace, line_number, column_number, file_name)
-}
 use std::fmt;
 #[derive(Debug, Clone)]
 pub struct Sentence {
@@ -92,57 +62,6 @@ impl fmt::Display for Term {
 }
 use std::collections::BTreeMap;
 
-pub fn rustify_sentence(
-    sentence: *const parser_c::Sentence,
-    varset: &mut BTreeMap<String, i32>,
-) -> Term {
-    if unsafe { (*sentence).name.is_null() } {
-        let variable;
-        let variable_name;
-
-        let context;
-        unsafe {
-            variable = sentence as *const parser_c::VariableSentence;
-            variable_name = CStr::from_ptr((*variable).variable_name)
-                .to_str()
-                .expect("Incorrect utf8 data in variable name")
-                .to_string();
-            //note - the variable id used in the parser probably won't be needed anymore
-            //variable_id = (*variable).variable_id;
-            context = rustify_context((*variable).context);
-        }
-        if varset.contains_key(&variable_name) {
-            let variable_id: i32;
-            variable_id = *varset.get(&variable_name).expect("Item missing");
-            Term::Variable(existing_variable(variable_id))
-        } else {
-            let retvar = new_variable(variable_name.clone(), context, false);
-            varset.insert(variable_name, retvar.get_variable_id());
-            Term::Variable(retvar)
-        }
-    } else {
-        unsafe {
-            let name = CStr::from_ptr((*sentence).name)
-                .to_str()
-                .expect("Incorrect utf8 data in sentence name")
-                .to_string();
-            let elements_old: &[parser_c::Sentence] =
-                slice::from_raw_parts((*sentence).elements, (*sentence).elements_length as usize);
-            let mut elements_new = Vec::with_capacity((*sentence).elements_length as usize);
-
-            for element in elements_old {
-                elements_new.push(rustify_sentence(element, varset));
-            }
-            let context = rustify_context((*sentence).context);
-
-            Term::Sentence(Sentence {
-                name: new_atom(&name),
-                elements: elements_new,
-                context,
-            })
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub enum LogicVerb {
@@ -181,35 +100,6 @@ impl fmt::Display for LogicVerb {
     }
 }
 
-pub fn rustify_logic_verb(
-    lverb: *const parser_c::LogicVerb,
-    varset: &mut BTreeMap<String, i32>,
-) -> LogicVerb {
-    unsafe {
-        let mut process_contents = || {
-            let nested = *(*lverb).contents.nested;
-            let contents_old: &[parser_c::LogicVerb] =
-                slice::from_raw_parts(nested.contents, nested.contents_length as usize);
-            let mut contents_new = Vec::with_capacity(nested.contents_length as usize);
-            for element in contents_old {
-                contents_new.push(rustify_logic_verb(element, varset));
-            }
-            contents_new
-        };
-
-        match (*lverb).type_ {
-            parser_c::VerbType_L_SENTENCE => {
-                LogicVerb::Sentence(match rustify_sentence((*lverb).contents.basic, varset) {
-                    Term::Sentence(s) => s,
-                    Term::Variable(v) => panic!("Clause head is variable: {:?}", v),
-                })
-            }
-            parser_c::VerbType_L_AND => LogicVerb::And(process_contents()),
-            parser_c::VerbType_L_OR => LogicVerb::And(process_contents()),
-            _ => panic!("Incorrect logic_verb type!"),
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Clause {
@@ -230,55 +120,11 @@ impl fmt::Display for Clause {
     }
 }
 
-pub fn rustify_clause(cl: *const parser_c::Clause, varset: &mut BTreeMap<String, i32>) -> Clause {
-    unsafe {
-        Clause {
-            head: match rustify_sentence((*cl).head, varset) {
-                Term::Sentence(s) => s,
-                Term::Variable(v) => panic!("Clause head is variable: {:?}", v),
-            },
-            body: if (*cl).body.is_null() {
-                None
-            } else {
-                Some(rustify_logic_verb((*cl).body, varset))
-            },
-            context: rustify_context((*cl).context),
-        }
-    }
-}
 
-pub fn tokenize_file<'a>(filename: &'a str, x: &'a mut i32) -> i32 {
-    let c_filename = CString::new(filename).expect("CString::new failed");
-    unsafe { parser_c::consult_file_oracle(c_filename.as_ptr() as *mut i8, x) }
-}
-
-use std::mem::MaybeUninit;
-
-pub fn parse_clause(
-    tokens_counter: &mut i32,
-    tokens_size: &i32,
-    oracle_counter: &mut i32,
-) -> Clause {
-    let oracle_size = 0; //I have a theory that this actually doesn't matter
-    let clause;
-
-    unsafe {
-        let mut mu_clause = MaybeUninit::<parser_c::Clause>::zeroed();
-        parser_c::clause_parse(
-            mu_clause.as_mut_ptr(),
-            parser_c::tokens,
-            *tokens_size,
-            tokens_counter,
-            parser_c::oracle_base,
-            oracle_size,
-            oracle_counter,
-        );
-        clause = mu_clause.assume_init();
-    }
-    rustify_clause(&clause, &mut BTreeMap::new())
-}
 
 //since now the variable id's are unique file-wise, there is no need for all this logic for getting the highest varset, etc
+
+//Okay, this function I still need. 
 
 fn join_clauses_of_same_predicate(
     separate_clauses_by_predicate: &BTreeMap<(Atom, i32), Vec<Clause>>,
@@ -392,49 +238,6 @@ pub struct Parameters {
     pub logic: Option<LogicVerb>,
 }
 
-fn rustify_parameters(
-    param: *const parser_c::Parameters,
-    varset: &mut BTreeMap<String, i32>,
-) -> Parameters {
-    let old_preconds: &[parser_c::AddRemSentence];
-    let preconds_length;
-    let old_effects: &[parser_c::AddRemSentence];
-    let effects_length;
-    let description;
-    let logic;
-    unsafe {
-        preconds_length = (*param).preconds_length as usize;
-        old_preconds = slice::from_raw_parts((*param).preconds, preconds_length);
-        effects_length = (*param).effects_length as usize;
-        old_effects = slice::from_raw_parts((*param).effects, effects_length);
-        description = if (*param).description.is_null() {
-            None
-        } else {
-            Some(rustify_sentence((*param).description, varset))
-        };
-        logic = if (*param).description.is_null() {
-            None
-        } else {
-            Some(rustify_logic_verb((*param).logic, varset))
-        };
-    }
-    let mut preconds = Vec::with_capacity(preconds_length);
-    for precond in old_preconds {
-        preconds.push((rustify_sentence(&precond.s, varset), precond.remove));
-    }
-    let mut effects = Vec::with_capacity(effects_length);
-    for effect in old_effects {
-        effects.push((rustify_sentence(&effect.s, varset), effect.remove));
-    }
-
-    Parameters {
-        preconds,
-        effects,
-        description,
-        logic,
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum ElementType {
     Action,
@@ -442,96 +245,57 @@ pub enum ElementType {
     Choice,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ElementOptions {
+    pub once: bool,
+    pub hide_name: bool
+}
+
 #[derive(Debug, Clone)]
 pub struct Element {
-    tag: ElementType,
-    name: Term,
-    priority: i32,
-    parameters: Parameters,
-    next_deck: Option<Atom>,
+    pub tag: ElementType,
+    pub name: Sentence,
+    pub priority: i32,
+    pub preconds: Vec<(Term, bool)>,
+    pub effects: Vec<(Term, bool)>,
+    pub description: Option<Term>,
+    pub logic: Option<LogicVerb>,
+    pub next_deck: Option<Term>,
+    pub options: ElementOptions,
 }
 
-fn rustify_element(
-    element: *const parser_c::Element,
-    varset: &mut BTreeMap<String, i32>,
-) -> (Element, Option<Atom>) {
-    let tag;
-    let name;
-    let priority;
-    let parameters;
-    let deck;
-    let next_deck;
+//list of components that need to be generated for an element:
 
-    unsafe {
-        tag = match (*element).type_ {
-            parser_c::ElementType_E_EARLY_ACTION => ElementType::EarlyAction,
-            parser_c::ElementType_E_CHOICE => ElementType::Choice,
-            parser_c::ElementType_E_LATE_ACTION => ElementType::Action,
-            _ => panic!("Incorrect element type!"),
-        };
-        name = rustify_sentence((*element).name, varset);
-        priority = (*element).priority;
-        parameters = rustify_parameters((*element).params, varset);
-        deck = if (*element).deck.is_null() {
-            None
-        } else {
-            Some(rustify_sentence((*element).deck, varset).sentence_name())
-        };
-        next_deck = if (*element).next_deck.is_null() {
-            None
-        } else {
-            Some(rustify_sentence((*element).next_deck, varset).sentence_name())
-        };
-    }
+//- name
+//- list of all variables
+//- description
+//- options
+//- effects
+//- next deck
+//- logic
+//- preconditions
 
-    (Element {
-        tag,
-        name,
-        priority,
-        parameters,
-        next_deck,
-    }, deck)
-}
+
+
 
 #[derive(Debug, Clone)]
 pub struct InitialState {
-    pub init_state: Vec<(Term, bool)>,
-    pub init_description: Option<Term>,
+    pub init_state: Vec<Sentence>,
+    pub init_description: Option<Sentence>,
 }
 
-fn rustify_initial_state(
-    initial: *const parser_c::InitialState,
-    varset: &mut BTreeMap<String, i32>,
-) -> InitialState {
-    let mut init_state;
-    let old_init_state;
-    let init_description;
-    unsafe {
-        let state_len = (*initial).state_length as usize;
-        init_state = Vec::with_capacity(state_len);
-        old_init_state = slice::from_raw_parts((*initial).init_state, state_len);
-        init_description = if (*initial).init_description.is_null() {
-            None
-        } else {
-            Some(rustify_sentence((*initial).init_description, varset))
-        };
-    }
-
-    for state in old_init_state {
-        init_state.push((rustify_sentence(&state.s, varset), state.remove));
-    }
-
-    InitialState {
-        init_state,
-        init_description,
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Deck {
     pub early_actions: Vec<Element>,
     pub choices: Vec<Element>,
     pub late_actions: Vec<Element>,
+}
+
+//Add data structures for weaving
+pub enum WeaveItem {
+    GatherPoint(Sentence),
+    Choice(Sentence, Vec<WeaveItem>)
 }
 
 
@@ -543,186 +307,283 @@ pub enum TopLevelItem {
     Element,
 }
 
-pub fn next_toplevel_item(oracle_counter: &mut i32) -> TopLevelItem {
-    unsafe {
-        let item_token = (*(parser_c::oracle_base.offset(*oracle_counter as isize))).toplevel;
-        if item_token.tag != parser_c::OIType_OI_TOPLEVEL {
-            panic!("Wrong token tag!");
-        };
-        match item_token.toplevel_tag {
-            parser_c::ToplevelType_TP_CLAUSE => TopLevelItem::Clause,
-            parser_c::ToplevelType_TP_DECK_OPEN => TopLevelItem::DeckOpen,
-            parser_c::ToplevelType_TP_DECK_CLOSE => TopLevelItem::DeckClose,
-            parser_c::ToplevelType_TP_INITIAL => TopLevelItem::Initial,
-            parser_c::ToplevelType_TP_ELEMENT => TopLevelItem::Element,
-            _ => panic!("Incorrect enum type!"),
-        }
-    }
-}
 
+pub enum SpecialFactType {
+    Unique,
+    //Stackable
+}
+//No, you have had enough. Take a rest now. 
 pub struct Document {
     pub initial_conditions: Option<InitialState>,
     pub decks: BTreeMap<Atom, Deck>,
-    pub predicates: BTreeMap<(Atom, i32), Clause>
+    pub predicates: BTreeMap<(Atom, i32), Clause>,
+    pub special_facts: Vec<(Atom, SpecialFactType)>
 }
 
-pub fn consult_file(filename: &str) -> BTreeMap<(Atom, i32), Clause> {
-    let mut tokens_size = 0;
-    tokenize_file(filename, &mut tokens_size);
-    let mut tokens_counter = 0;
-    let mut oracle_counter = 0;
-    let default = new_atom("default");
-    let mut current_deck = default;
-    let mut initial = None;
-    let mut map: BTreeMap<(Atom, i32), Vec<Clause>> = BTreeMap::new();
-    let mut map_decks: BTreeMap<Atom, Deck> = BTreeMap::new();
-
-    //todo: this code should recognize tp_clause, tp_deck_open, tp_deck_close, tp_initial and tp_element
-    //all thats left now is deck open and close!
-    while tokens_counter < tokens_size {
-        oracle_counter += 1;
-        let next = next_toplevel_item(&mut oracle_counter);
-        match next {
-            TopLevelItem::Clause => {
-                assert!(current_deck == default);
-                let clause = parse_clause(&mut tokens_counter, &tokens_size, &mut oracle_counter);
-
-                tokens_counter += 1;
-                let arity = clause.head.elements.len() as i32;
-                let cl_name = clause.head.name;
-
-                let key = (cl_name, arity);
-                if map.contains_key(&key) {
-                    map.get_mut(&key).expect("404: not found").push(clause);
-                } else {
-                    map.insert(key, vec![clause]);
-                }
-            },
-
-            TopLevelItem::Initial => {
-                initial = unsafe {
-                    let mut mu_initial = MaybeUninit::<parser_c::InitialState>::zeroed();
-                    parser_c::initial_parse(
-                        mu_initial.as_mut_ptr(),
-                        parser_c::tokens,
-                        tokens_size,
-                        &mut tokens_counter,
-                        parser_c::oracle_base,
-                        0,
-                        &mut oracle_counter,
-                    );
-                    Some(rustify_initial_state(&mu_initial.assume_init(), &mut BTreeMap::new()))               
-                };
-                tokens_counter += 1;
-            },
-
-            TopLevelItem::DeckOpen => {
-                assert!(current_deck == default);
-                tokens_counter += 1;
-                
-                let deck_name = unsafe {
-                    let mut mu_sentence = MaybeUninit::<parser_c::Sentence>::zeroed();
-                    parser_c::sentence_parse(
-                        mu_sentence.as_mut_ptr(),
-                        parser_c::tokens,
-                        tokens_size,
-                        &mut tokens_counter,
-                        parser_c::oracle_base,
-                        0,
-                        &mut oracle_counter,
-                    );
-                    new_atom(&CStr::from_ptr(mu_sentence.assume_init().name).to_str()
-                        .expect("Incorrect utf8 data in deck name"))
-                };
-                current_deck = deck_name;
-            },
-
-            TopLevelItem::DeckClose => {
-                assert!(current_deck != default);
-                tokens_counter += 1;
-                
-                let deck_name = unsafe {
-                    let mut mu_sentence = MaybeUninit::<parser_c::Sentence>::zeroed();
-                    parser_c::sentence_parse(
-                        mu_sentence.as_mut_ptr(),
-                        parser_c::tokens,
-                        tokens_size,
-                        &mut tokens_counter,
-                        parser_c::oracle_base,
-                        0,
-                        &mut oracle_counter,
-                    );
-                    new_atom(&CStr::from_ptr(mu_sentence.assume_init().name).to_str()
-                        .expect("Incorrect utf8 data in deck name"))
-                };
-                assert!(current_deck == deck_name);
-                current_deck = default;
-            },
-            
-            TopLevelItem::Element => {
-                let (element, el_deck) = unsafe {
-                    let mut mu_element = MaybeUninit::<parser_c::Element>::zeroed();
-                    parser_c::element_parse(
-                        mu_element.as_mut_ptr(),
-                        parser_c::tokens,
-                        tokens_size,
-                        &mut tokens_counter,
-                        parser_c::oracle_base,
-                        0,
-                        &mut oracle_counter,
-                    );
-                    rustify_element(&mu_element.assume_init(), &mut BTreeMap::new())               
-                };
-                tokens_counter += 1;
-                
-                let element_deck = match el_deck {
-                    None => {
-                        current_deck
-                    }
-                    Some(deck) => {
-                        assert!(current_deck == default);
-                        deck
-                    }
-                };
-                if map_decks.contains_key(&element_deck) {
-                    let deck = map_decks.get_mut(&element_deck).expect("404: not found");
-                    match element.tag {
-                        ElementType::Action => {
-                            deck.late_actions.push(element)
-                        },
-                        ElementType::EarlyAction => {
-                             deck.early_actions.push(element)
-                        },
-                        ElementType::Choice => {
-                             deck.choices.push(element)
-                        },
-                    }
-                } else {
-                    let mut deck = Deck {early_actions: Vec::new(), late_actions: Vec::new(), choices: Vec::new()};
-                    match element.tag {
-                        ElementType::Action => {
-                            deck.late_actions.push(element)
-                        },
-                        ElementType::EarlyAction => {
-                             deck.early_actions.push(element)
-                        },
-                        ElementType::Choice => {
-                             deck.choices.push(element)
-                        },
-                    }
-                    map_decks.insert(element_deck, deck);
-                }
-            }
-            _ => panic!("not implemented yet"),
+pub fn consult_file(filename: &str) -> Document {
+    fn make_atom(name: &str) -> Term {
+        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+        Term::Sentence(Sentence{
+            name: new_atom(&name.to_string()),
+            elements: Vec::new(),
+            context
+        })
+    }
+    fn make_atom_n(name: &str) -> Sentence {
+        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+        Sentence{
+            name: new_atom(&name.to_string()),
+            elements: Vec::new(),
+            context
         }
     }
-
-    clean_up_memory();
-    join_clauses_of_same_predicate(&map)
-}
-
-pub fn clean_up_memory() {
-    unsafe {
-        parser_c::globals_free();
+    
+    fn make_structured_term(name: &str, elements: Vec<Term>) -> Term {
+        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+        Term::Sentence(Sentence{
+            name: new_atom(&name.to_string()),
+            elements:elements.clone(),
+            context
+        })
     }
+    fn make_structured_term_n(name: &str, elements: Vec<Term>) -> Sentence {
+        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+        Sentence{
+            name: new_atom(&name.to_string()),
+            elements:elements.clone(),
+            context
+        }
+    }
+    fn make_variable(name: &str) -> Term {
+        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+        Term::Variable(
+             new_variable(name.to_string(), context, false)
+        )
+    }
+
+    
+    
+    let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+    let mut decks =  BTreeMap::new();
+    {
+        let var_AP = make_variable("?AP");
+        let var_Civ = make_variable("?Civ");
+        let var_Week = make_variable("?Week");
+
+        //for End week
+        let var_Current = make_variable("?Current");
+        let var_Next = make_variable("?Next");
+        
+        decks.insert(new_atom("default"), Deck{
+            early_actions: vec![
+                Element {
+                    tag: ElementType::EarlyAction,
+                    name: make_atom_n("Show Stats"),
+                    priority: 1,
+                    preconds: vec![
+                        (make_structured_term("{} action points", vec![var_AP.clone()]), true),
+                        (make_structured_term("civilisation {}", vec![var_Civ.clone()]), true),
+                        (make_structured_term("week {}", vec![var_Week.clone()]), true),
+                    ],
+                    effects: vec![],
+                    description: Some(
+                        make_structured_term(
+                            "<p>It is week {}.</p> <p>You have {} AP, and your civ stat is {}.</p>",
+                            vec![var_Week.clone(), var_AP.clone(), var_Civ.clone()]
+                        )
+                    ),
+                    logic: None,
+                    next_deck: None,
+                    options: ElementOptions {once: true, hide_name: true}
+                }
+            ],
+            choices: vec![
+                Element {
+                    tag: ElementType::Choice,
+                    name: make_atom_n("Stay here"),
+                    priority: 1,
+                    preconds: vec![],
+                    effects: vec![],
+                    description: None,
+                    logic: None,
+                    next_deck: Some(make_atom("Light world")),
+                    options: ElementOptions {once: false, hide_name: true}
+                },
+                Element {
+                    tag: ElementType::Choice,
+                    name: make_atom_n("Cross over"),
+                    priority: 2,
+                    preconds: vec![],
+                    effects: vec![],
+                    description: None,
+                    logic: None,
+                    next_deck: Some(make_atom("Dark world")),
+                    options: ElementOptions {once: false, hide_name: true}
+                },
+                Element {
+                    tag: ElementType::Choice,
+                    name: make_atom_n("Plan"),
+                    priority: 3,
+                    preconds: vec![],
+                    effects: vec![],
+                    description: None,
+                    logic: None,
+                    next_deck: Some(make_atom("Plan")),
+                    options: ElementOptions {once: false, hide_name: true}
+                },
+
+                Element {
+                    tag: ElementType::Choice,
+                    name: make_atom_n("End week"),
+                    priority: 4,
+                    next_deck: None,
+                    preconds: vec![
+                        (make_structured_term("week {}", vec![var_Current.clone()]), true)
+                    ],
+                    effects: vec![
+                        (make_structured_term("{} action points", vec![make_atom("7")]),  true),
+                        (make_structured_term("week {}", vec![var_Next.clone()]), true)
+                    ],
+                    description: None,
+                    logic: Some(LogicVerb::Sentence(
+                        Sentence {
+                            name: new_atom("{} + {} = {}"),
+                            elements: vec![var_Current.clone(), make_atom("1"), var_Next.clone()],
+                            context
+                        }
+                    )),
+                    options: ElementOptions {once: false, hide_name: true}
+                },
+
+            ],
+            late_actions: vec![],
+        });
+    }
+    //let me check, how many more?
+    //uh, 7 I guess
+    {
+        //Go to work
+        let var_AP = make_variable("?AP");
+        let var_APNext = make_variable("?APNext");
+        let var_Civ = make_variable("?Civ");
+        let var_CivNext = make_variable("?CivNext");
+        
+        decks.insert(new_atom("Light world"), Deck {
+            early_actions: vec![],
+            choices: vec![
+                Element {
+                    tag: ElementType::Choice,
+                    name: make_atom_n("Go to work"),
+                    priority: 1,
+                    preconds: vec![
+                        (make_structured_term("{} action points", vec![var_AP.clone()]), true), 
+                        (make_structured_term("civilisation {}", vec![var_Civ.clone()]), true),
+                    ],
+                    effects: vec![
+                        (make_structured_term("{} action points", vec![var_APNext.clone()]), true),
+                        (make_structured_term("civilisation {}", vec![var_CivNext.clone()]), true)
+                    ],
+                    description: None,
+                    //
+                    logic: Some(LogicVerb::And(vec![
+                        LogicVerb::Sentence(
+                            make_structured_term_n("{} greater than {}", vec![var_AP.clone(), make_atom("0")])
+                        ),
+                        LogicVerb::Sentence(
+                            make_structured_term_n("{} - {} = {}", vec![var_AP, make_atom("1"), var_APNext])
+                        ),
+                       LogicVerb::Sentence(make_structured_term_n("{} is shifted to {} as {}", vec![
+                            var_Civ,
+                            make_atom("+"),
+                            var_CivNext
+                        ])),
+                    ])),
+                    next_deck: None,
+                    options: ElementOptions {once: false, hide_name: false}
+                },
+            ],
+            late_actions: vec![],
+        });
+        
+    }
+    //decks.insert(new_atom(), Deck{
+    //    early_actions: vec![],
+    //    choices: vec![],
+    //    late_actions: vec![],
+    //});
+    //decks.insert(new_atom(), Deck{
+    //    early_actions: vec![],
+    //    choices: vec![],
+    //    late_actions: vec![],
+    //});
+    
+    Document {
+        decks,
+        predicates: BTreeMap::new(),
+        special_facts: vec![
+            (new_atom("week {}"), SpecialFactType::Unique),
+            (new_atom("{} action points"), SpecialFactType::Unique),
+            (new_atom("civilisation {}"), SpecialFactType::Unique),
+        ],
+        initial_conditions: Some(
+            InitialState{
+                init_description: None,
+                init_state: vec![
+                    make_structured_term_n("week {}", vec![make_atom("1")]),
+                    make_structured_term_n("{} action points", vec![make_atom("7")]),
+                    make_structured_term_n("civilisation {}", vec![make_atom("5")])
+                ]                        
+            }
+        ),
+        
+
+    }
+    
 }
+
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_segmentation::UWordBounds;
+use std::collections::HashMap;
+
+pub fn term_parse(source: &mut UWordBounds,  v_map: &mut HashMap<String, Variable>, context: Context) -> Term {
+    if source.as_str() == "?" {
+        source.next();
+        //code for handling variable
+        let var = match v_map.get(source.as_str()) {
+            None => {
+                let v = new_variable(source.as_str().to_string(), context, false);
+                v_map.insert(source.as_str().to_string(), v);
+                v
+            },
+            Some(v) => *v
+
+        };
+        
+        Term::Variable(var)
+        
+    } else {
+        if source.as_str() == "<" {
+            source.next();
+        }
+        let mut sentence_name = String::new();
+        let mut elements = Vec::new();
+        //Ugh, its actually realy out of whack
+        loop {
+            match source.as_str() {
+                "?" | "<" => {
+                    elements.push(term_parse(source, v_map, context));
+                    sentence_name.push_str("{}");
+                },
+                ">" | "" => {
+                    let name = new_atom(&sentence_name);
+                    return Term::Sentence(Sentence {name, elements, context});
+                },
+                s => {
+                    sentence_name.push_str(s);
+                }
+            }
+
+        }
+    }
+    
+} 
