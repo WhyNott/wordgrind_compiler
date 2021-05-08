@@ -9,8 +9,258 @@ use crate::tl_database::{
 
 use crate::parser::{
     Sentence, Term, LogicVerb, Clause, Parameters, ElementType, ElementOptions, Element,
-    InitialState, Deck, WeaveItem, TopLevelItem, SpecialFactType, Document
+    InitialState, Deck, WeaveItem, TopLevelItem, SpecialFactType, Document,
+    join_clauses_of_same_predicate
 };
+use std::collections::BTreeMap;
+
+extern crate yaml_rust;
+use yaml_rust::yaml::{Yaml, Hash};
+
+
+pub fn document_parse(yaml_doc:&Yaml) -> Document {
+    let mut initial_conditions: Option<InitialState> = None;  
+    let mut decks: BTreeMap<Atom, Deck> = BTreeMap::new();                
+    let mut predicates: BTreeMap<(Atom, i32), Clause> = BTreeMap::new();                
+    let mut special_facts: Vec<(Atom, SpecialFactType)> = Vec::new();
+
+    let emsg = "Incorrect document format";
+    for (key, value) in yaml_doc.as_hash().expect(emsg) {
+        match key.as_str().expect(emsg) {
+            "Initial state" => {
+                initial_conditions = Some(initial_state_parse(value));
+            },
+            "Unique facts" => {
+                for fact in value.as_vec().expect(emsg) {
+                    //ugly hack, but works for now
+                    let name = new_atom(&fact.as_str().expect(emsg).replace("?_", "{}"));
+                    special_facts.push((name, SpecialFactType::Unique));
+                }
+            },
+            "Predicates" => {
+                let mut separarate_predicates: BTreeMap<(Atom, i32), Vec<Clause>> = BTreeMap::new();
+                
+                for pred in value.as_vec().expect(emsg) {
+                    let clause = clause_parse(pred);
+                    let head = (clause.head.name, clause.head.elements.len() as i32);
+                    if let Some(vect) = separarate_predicates.get_mut(&head) {
+                        vect.push(clause);
+                    } else {
+                        separarate_predicates.insert(head, vec![clause]);
+                    }
+                }
+                predicates = join_clauses_of_same_predicate(&separarate_predicates);
+            },
+            s => {
+                let deck: Deck = deck_parse(value);
+                decks.insert(new_atom(s), deck);
+            }
+            
+        }
+        
+    }
+
+    Document { initial_conditions, decks, predicates, special_facts}
+
+}
+
+fn element_parse(key:&Yaml, hash_data:&Yaml, tag: ElementType) -> Element {
+    let emsg = "Incorrect document format";
+    let mut v_map : HashMap<String, Variable> = HashMap::new();
+    let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+
+    let name: Sentence = if let Term::Sentence(s) = term_parse(
+        key.as_str().expect(emsg), &mut v_map, context) {
+        s
+    } else {
+        panic!("variable shouldnt be here");
+    };
+
+    hash_data["priority"].is_badvalue();
+    
+    let priority: i32 = if let Yaml::Integer(int) = hash_data["priority"] {
+        int as i32 //lol
+    } else {0};
+    
+    let mut preconds: Vec<(Term, bool)> = if let Yaml::Array(arr) = &hash_data["available when"] {
+        let mut new_arr = Vec::with_capacity(arr.len());
+        for sent in arr {
+            let value = if let Yaml::String(strg) = sent {
+                (term_parse(&strg,&mut v_map, context), true)
+            } else {
+                (term_parse(sent["not"].as_str().expect(emsg), &mut v_map, context), false)
+            };
+            new_arr.push(value);
+        }
+        new_arr
+    } else {Vec::new()};
+    
+    
+
+        
+    let mut effects: Vec<(Term, bool)> = if let Yaml::Array(arr) = &hash_data["causes"] {
+        let mut new_arr = Vec::with_capacity(arr.len());
+        for sent in arr {
+            let value = if let Yaml::String(s) = sent {
+                (term_parse(&s, &mut v_map, context), true)
+            } else {
+                (term_parse(sent["removes"].as_str().expect(emsg), &mut v_map, context), false)
+            };
+            new_arr.push(value);
+        }
+         new_arr
+    } else {Vec::new()};
+
+    
+    
+    let description: Option<Term> = if let Yaml::String(s) = &hash_data["displays"] {
+        Some(term_parse(&s, &mut v_map, context))
+    } else {
+        None
+    };
+    
+    let logic: Option<LogicVerb> = if !hash_data["such that"].is_badvalue() {
+        Some(logic_verb_parse(&hash_data["such that"], &mut v_map))
+    } else {
+        None
+    };
+        
+    let next_deck: Option<Term> = if let Yaml::String(s) = &hash_data["next deck"] {
+        Some(term_parse(&s, &mut v_map, context))
+    } else {
+        None
+    };
+    let mut options = ElementOptions {once: false, hide_name: false};
+    if !hash_data["options"].is_badvalue(){
+        if !hash_data["options"]["once"].is_badvalue(){
+            options.once = hash_data["options"]["once"].as_bool().expect(emsg)
+        }
+        if !hash_data["options"]["hide name"].is_badvalue(){
+            options.hide_name = hash_data["options"]["hide name"].as_bool().expect(emsg)
+        }
+    }
+
+    Element {tag, name, priority, preconds, effects, description, logic, next_deck, options}
+}
+
+fn clause_parse(data: &Yaml) -> Clause {
+    let head: Sentence;         
+    let body: Option<LogicVerb>;
+    let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+    let emsg = "Incorrect document format";
+    let mut v_map : HashMap<String, Variable> = HashMap::new();
+    
+    let head_str = if let Yaml::String(string) = data {
+        body = None;
+        string
+    } else {
+        let (head, bod) = data.as_hash().expect(emsg).iter().next().expect(emsg);
+        body = Some(logic_verb_parse(bod, &mut v_map));
+        head.as_str().expect(emsg)
+    };
+
+    if let Term::Sentence(s) = term_parse(&head_str, &mut v_map, context) {
+        head = s;
+    } else {
+        panic!("variable shouldnt be here");
+    }
+    
+    Clause {head, body, context}
+}
+
+
+fn logic_verb_parse(data: &Yaml, v_map: &mut HashMap<String, Variable>) -> LogicVerb {
+    let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+    
+    if let Yaml::String(string) = data {
+         if let Term::Sentence(s) = term_parse(&string, v_map, context) {
+            LogicVerb::Sentence(s)
+        } else {
+            panic!("variable shouldnt be here");
+        }
+    } else {
+        if let Yaml::Array(and) = &data["and"] {
+            let mut and_processed = Vec::with_capacity(and.len());
+            for item in and {
+                and_processed.push(logic_verb_parse(&item, v_map));
+            }
+            LogicVerb::And(and_processed)
+            
+        } else if let Yaml::Array(or) = &data["or"] {
+            let mut or_processed = Vec::with_capacity(or.len());
+            for item in or {
+                or_processed.push(logic_verb_parse(&item, v_map));
+            }
+            LogicVerb::Or(or_processed)
+            
+        } else {
+            panic!("Incorrect logic verb type!");
+        }
+    }
+}
+
+
+fn deck_parse(yaml_data:&Yaml) -> Deck {
+    let mut early_actions: Vec<Element> = Vec::new();
+    if let Yaml::Hash(h) = &yaml_data["Early actions"] {
+        for (key, value) in h {
+            early_actions.push(element_parse(key, value, ElementType::EarlyAction));
+        }
+    }
+    
+    let mut choices: Vec<Element> = Vec::new();
+    if let Yaml::Hash(h) = &yaml_data["Choices"] {
+        for (key, value) in h {
+            choices.push(element_parse(key, value, ElementType::Choice));
+        }
+    }
+    
+    let mut late_actions: Vec<Element> = Vec::new();
+    if let Yaml::Hash(h) = &yaml_data["Actions"] {
+        for (key, value) in h {
+            late_actions.push(element_parse(key, value, ElementType::Action));
+        }
+    }
+
+    Deck {early_actions, choices, late_actions}
+    
+}
+
+fn initial_state_parse(yaml_data:&Yaml) -> InitialState {
+    let mut v_map : HashMap<String, Variable> = HashMap::new();
+    let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+    
+    let emsg = "Incorrect document format";
+    //okay, first check if condition and displays fields exist
+    let init_description: Option<Sentence> = if let Yaml::String(strg) = &yaml_data["displays"] {
+        if let Term::Sentence(s) = term_parse(&strg, &mut v_map, context) {
+            Some(s)
+        } else {
+            panic!("variable shouldnt be here");
+        }
+    } else {
+        None
+    };
+    let init_state: Vec<Sentence> = if let Yaml::Array(condition_data) = &yaml_data["condition"] {
+        let mut condition_sentences = Vec::with_capacity(condition_data.len());
+        for yaml_cond in condition_data {
+            if let Term::Sentence(s) = term_parse(yaml_cond.as_str().expect(emsg),&mut v_map, context) {
+                condition_sentences.push(s);
+            } else {
+                panic!("variable shouldnt be here");
+            }
+        }
+        condition_sentences
+    } else {
+        Vec::new()
+    };
+
+    InitialState {init_state, init_description}
+    
+}
+
+
+
 
 
 pub fn term_parse(source: &str,  v_map: &mut HashMap<String, Variable>, context: Context) -> Term {
@@ -50,12 +300,7 @@ pub fn term_parse(source: &str,  v_map: &mut HashMap<String, Variable>, context:
 
 }
 
-//This def. needs more work
-//<asd> sdfsdff <sdfsdf>
-//sdfsdf
-//<sdfsdf <sdfdsf> sdsfsdf>>
-//?sfsdfsdf dsfsdf ?sdfsdfsd
-//<dsafsdf> dsfdssdfs
+
 
 #[cfg(test)]
 mod tests {

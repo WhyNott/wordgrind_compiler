@@ -17,29 +17,31 @@ use yaml_rust::{YamlLoader, YamlEmitter};
 use unicode_segmentation::UnicodeSegmentation;
  use std::collections::HashMap;
 use crate::tl_database::new_context;
-use crate::yaml_parser::term_parse;
+use crate::yaml_parser::{term_parse,document_parse};
 use crate::tl_database::Variable;
 
 fn main() {
     
     let filename = "decks.wg";
-    let file_results = parser::consult_file(filename);
-    let data = fs::read_to_string("main.yaml").expect("Unable to read file");
+    let data = fs::read_to_string("walk_around.yaml").expect("Unable to read file");
 
     let mains = YamlLoader::load_from_str(&data).unwrap();
     let main = &mains[0];
     println!("{:?}", main);
 
-    let mut v_map : HashMap<String, Variable> = HashMap::new();
-    let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
-    //todo: figure out why this doesn't work
-    println!("{}", term_parse(&mut "?test", &mut v_map, context));
-    println!("{}", term_parse(&mut "<civilisation ?_>", &mut v_map, context));
-    println!("{}", term_parse(&mut "civilisation ?CivNext", &mut v_map, context));
-    println!("{}", term_parse(&mut "<?Civ is shifted to <+> as ?CivNext>",
-                                &mut v_map,
-                                context));
-        
+    let parsed = document_parse(main);
+    println!("{}", parsed.initial_conditions.expect("error"));
+
+    //let mut v_map : HashMap<String, Variable> = HashMap::new();
+    //let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
+    ////todo: figure out why this doesn't work
+    //println!("{}", term_parse(&mut "?test", &mut v_map, context));
+    //println!("{}", term_parse(&mut "<civilisation ?_>", &mut v_map, context));
+    //println!("{}", term_parse(&mut "civilisation ?CivNext", &mut v_map, context));
+    //println!("{}", term_parse(&mut "<?Civ is shifted to <+> as ?CivNext>",
+    //                            &mut v_map,
+    //                            context));
+
     
     //let write_file = File::create("compiled.js").unwrap();
     //let mut writer = BufWriter::new(&write_file);

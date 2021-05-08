@@ -10,9 +10,9 @@ Initial state:
 
 Unique facts:
   - week ?_
-  - <?_ action points>
-  - <civilisation ?_>
-  - <money ?_>
+  - ?_ action points
+  - civilisation ?_
+  - money ?_
 
 Default:
   Choices:
@@ -105,7 +105,7 @@ Light world:
  #       - Neighbour visit <4>
  #       
  #
-W#eaveTest:
+#W#eaveTest:
  # #example stolen from ink documentation
  # Weave:
  #   - "Well, Poirot? Murder or suicide?": #1

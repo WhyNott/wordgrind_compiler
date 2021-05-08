@@ -1,9 +1,6 @@
 #![allow(dead_code)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-//time to gut this thing completely.
-//Lets turn lsp on, and fix up the imminent error
-
 use crate::tl_database::{
     existing_variable, new_atom, new_context, new_variable, Atom, Context, Variable,
 };
@@ -126,7 +123,7 @@ impl fmt::Display for Clause {
 
 //Okay, this function I still need. 
 
-fn join_clauses_of_same_predicate(
+pub fn join_clauses_of_same_predicate(
     separate_clauses_by_predicate: &BTreeMap<(Atom, i32), Vec<Clause>>,
 ) -> BTreeMap<(Atom, i32), Clause> {
     let mut joined_clause_by_predicate: BTreeMap<(Atom, i32), Clause> = BTreeMap::new();
@@ -264,24 +261,28 @@ pub struct Element {
     pub options: ElementOptions,
 }
 
-//list of components that need to be generated for an element:
-
-//- name
-//- list of all variables
-//- description
-//- options
-//- effects
-//- next deck
-//- logic
-//- preconditions
-
-
 
 
 #[derive(Debug, Clone)]
 pub struct InitialState {
     pub init_state: Vec<Sentence>,
     pub init_description: Option<Sentence>,
+}
+
+impl fmt::Display for InitialState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "{{Initial state:")?;
+
+        if let Some(s) = &self.init_description {
+            writeln!(f, "Description: \n {}", s)?;
+        }
+  
+        writeln!(f, "State:")?;
+        for element in &self.init_state {
+            writeln!(f, "-{}", element)?;
+        }
+        writeln!(f, "}}")
+    }
 }
 
 
@@ -292,13 +293,14 @@ pub struct Deck {
     pub late_actions: Vec<Element>,
 }
 
-//Add data structures for weaving
+
+#[derive(Debug, Clone)]
 pub enum WeaveItem {
     GatherPoint(Sentence),
     Choice(Sentence, Vec<WeaveItem>)
 }
 
-
+#[derive(Debug, Clone)]
 pub enum TopLevelItem {
     Clause,
     DeckOpen,
@@ -307,12 +309,12 @@ pub enum TopLevelItem {
     Element,
 }
 
-
+#[derive(Debug, Clone)]
 pub enum SpecialFactType {
     Unique,
     //Stackable
 }
-//No, you have had enough. Take a rest now. 
+#[derive(Debug, Clone)]
 pub struct Document {
     pub initial_conditions: Option<InitialState>,
     pub decks: BTreeMap<Atom, Deck>,
