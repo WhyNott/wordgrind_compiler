@@ -1,8 +1,313 @@
-//<<s of <0>> plus <s of <0>> equals ?X>
-//<?X plus <s of <0>> equals <s of <0>>>
+
+const DB = {
+
+    *[Symbol.iterator]() {
+        for (const [key, value] of Object.entries(this.store)){
+            for (element of value.data){
+                yield element;
+            }
+        }
+    },
+
+    add: function (fact){
+        const name = fact.is_atom() ? fact.value.toString() : fact.value.functor;
+        if (name in this.store){
+            if (this.store[name].unique)
+                this.store[name].data = [fact];
+            else
+                this.store[name].data.push(fact);
+        } else {
+            this.store[name] = {data:[fact], unique:false};
+        }
+    },
+    //note - to remove the need for trailing here, maybe it would make
+    //sense to create a 'can_unify' method here, that unifies without making changes
+    remove: function (fact){
+        for (name in this.store){
+            trail.new_choice_point();
+            for (let i = 0; i < this.store[name].data.length; i++){
+                if (fact.unify_with(this.store[name].data[i])){
+                    this.store[name].data.splice(i, 1);
+                    i--;
+                    trail.restore_choice_point();
+                }
+            }
+            trail.remove_choice_point();
+        }
+    },
+
+    
+    match_list: function (list, index, logic){
+        let item = list[index];
+        let negation = false;
+        if (!item.is_atom() && item.value.functor == "not" ) {
+            console.log("test")
+            negation = true;
+            item = item.value.args[0];
+        }
+        let name = item.is_atom() ? item.value.toString() : item.value.functor;
+        
+        
+        if (name in this.store){
+            trail.new_choice_point();
+            for (fact of this.store[name].data) {
+                if (fact.unify_with(item)){
+                    if (negation){
+                        //fail instantly on match
+                        trail.restore_choice_point();
+                        trail.remove_choice_point();
+                        return;
+                    } else {
+                        if (list.length == (index+1))
+                            logic();
+                        else
+                            this.match_list(list, index+1, logic);
+                    }
+                    trail.restore_choice_point();
+                }
+            }
+            if (negation){
+                if (list.length == (index+1))
+                    logic();
+                else
+                    this.match_list(list, index+1, logic);
+            }
+            trail.remove_choice_point();
+        } 
+        
+    },
+    match: function (logic, ...facts) {
+        if (facts.length == 0)
+            logic();
+        else
+            this.match_list(facts, 0, logic);
+    },
+    
+
+}
 
 
 
+function apply_element(element) {
+    if ('hide_name' in element.options && element.options.hide_name) {
+        set_description(null, element.description);
+    } else {
+        set_description(element.name, element.description);
+    }
+    DB.add(make_structured_term("selected {}", [element.name.content()]));
+    if (element.effects != null){
+        for (effect of element.effects){
+            if (!effect.is_atom() && effect.value.functor == "not"){
+                DB.remove(effect.value.args[0]);
+            } else {
+                DB.add(effect);
+            }
+        }
+    }
+}
+
+
+
+let deck_stack = [];
+
+let current_deck = {deck: "default", pre_choice:true};
+
+let available_choices = [];
+
+
+
+function find_choices(){
+    const deck = decks[current_deck.deck];
+        
+    const name        = make_empty_variable("name"); 
+    const description = make_empty_variable("description"); 
+    const effects     = make_empty_variable("effects"); 
+    const next_deck   = make_empty_variable("next_deck");
+    const options = {};
+    let choices = [];
+    
+    const cont = () => {
+        const copy_term = (term) => {
+                const leading = term.dereferenced_value();
+                if (leading.is_variable() && !leading.bound()){
+                    console.log(leading);
+                    throw "error";
+                }
+                if (leading.is_atom()){
+                    return leading;
+                } else {
+                    let args = [];
+                    for (arg of leading.value.args) {
+                        args.push(copy_term(arg));
+                    }
+                    return make_structured_term(leading.value.functor, args);
+                }
+        };
+        
+        let found_choice = {};
+        found_choice.name = copy_term(name.content());
+        found_choice.description = description.bound() ? description.pprint(bracketed = false) : null;
+        if (!effects.is_variable() || effects.bound()){
+            
+            found_choice.effects = copy_term(effects).value.args;
+        } else
+            found_choice.effects = null;
+        found_choice.next_deck = next_deck.bound() ? next_deck.value.value : null;
+        found_choice.options = options;
+        choices.push(found_choice);
+        dc.add_new_step('Found: ' + found_choice.name.pprint(bracketed = false));
+    };
+
+    trail.new_choice_point();
+    for (possible_choice of deck.choices) {
+        possible_choice(name, description, effects, next_deck, options, cont);
+        trail.restore_choice_point();
+    }
+    trail.remove_choice_point();
+
+    return choices;
+}
+
+function choose_action(late, used){
+    const deck = decks[current_deck.deck];
+    const actions = late ? deck.late_actions : deck.early_actions; 
+    
+    const name        = make_empty_variable("name"); 
+    const description = make_empty_variable("description"); 
+    const effects     = make_empty_variable("effects"); 
+    const next_deck   = make_empty_variable("next_deck");
+    const options = {};
+
+    let found_suitable = false;
+    let chosen_action = {};
+    
+    const cont = () => {
+        if (!found_suitable &&
+            !('once' in options && options.once && used.includes(name.content().pprint()))
+           ){
+            found_suitable = true;
+            chosen_action.name = name.content();
+            chosen_action.description = description.pprint(bracketed = false);
+            if (effects.bound()){
+                const copy_term = (term) => {
+                    const leading = term.dereferenced_value();
+                    console.assert(leading.bound());
+                    if (leading.is_atom()){
+                        return leading;
+                    } else {
+                        let args = [];
+                        for (arg of leading.value.args) {
+                            args.push(copy_term(arg));
+                        }
+                        return make_structured_term(leading.value.functor, args);
+                    }
+                };
+                chosen_action.effects = copy_term(effects).value.args;
+            } else
+                chosen_action.effects = null;
+            chosen_action.options = options;
+            chosen_action.next_deck = next_deck.bound() ? next_deck.value.value : null;
+            used.push(chosen_action.name.pprint());
+        }
+    };
+
+    trail.new_choice_point();
+    for (action of actions) {
+        if (found_suitable)
+            break;
+        action(name, description, effects, next_deck, options, cont);
+        trail.restore_choice_point();
+    }
+    trail.remove_choice_point();
+
+    return found_suitable ? chosen_action : null;
+}
+
+
+const STATES = {
+    POP:0,
+    PUSH:1,
+    LATE:2,
+    EARLY:3
+};
+function make_choice(n){
+    
+    let current_element = available_choices[n];
+    apply_element(current_element);
+    let state;
+    if (current_element.next_deck === null) {
+        state = STATES.LATE;
+    } else {
+        state = STATES.PUSH;
+    }
+    let used_actions = [];
+    
+    current_deck.pre_choice = false;
+    while(true){
+        
+        if (state == STATES.LATE) {
+        //code for executing late action 
+            let action = choose_action(late=true, used=used_actions);
+            if (action === null) {
+                state = STATES.POP;
+            } else {
+                current_element = action;
+                apply_element(current_element);
+                if (current_element.next_deck === null) {
+                    state = STATES.LATE;
+                } else {
+                    current_deck.pre_choice = false;
+                    state = STATES.PUSH;
+                }
+            }
+        } else if (state == STATES.EARLY) {
+            //code for executing early action
+            let action = choose_action(late=false, used=used_actions);
+            if (action === null) {
+                available_choices = find_choices();
+                return;
+            } else {
+                current_element = action;
+                apply_element(current_element);
+                if (current_element.next_deck === null ){
+                    state = STATES.EARLY;
+                } else {
+                    current_deck.pre_choice = true;
+                    state = STATES.PUSH;
+                }
+            }
+            
+        } else if (state == STATES.POP) {
+            //code for popping a deck from stack
+            if (deck_stack.length > 0)
+                current_deck = deck_stack.pop();
+            else
+                current_deck = {deck: "default", pre_choice:true};
+
+            if (current_deck.pre_choice)
+                state = STATES.EARLY;
+            else
+                state = STATES.LATE;
+            
+        } else if (state == STATES.PUSH) {
+            //code for pushing current to the stack and seting lead as current deck
+            if (current_deck != "default") {
+                deck_stack.push(current_deck);
+            }
+            current_deck = {deck: current_element.next_deck, pre_choice:true};
+            state = STATES.EARLY;
+            
+        } else {
+            //throw an error here
+            throw "Invalid state value!"
+        }
+
+    }
+
+}
+
+
+//logic stuff
 
 let global_id_counter = 0;
 
@@ -189,7 +494,6 @@ const term_prototype = {
     },
 
     bound(){
-        console.assert(this.is_variable());
         if (Object.is(this.value, this)){
             return false;
         } else {

@@ -265,7 +265,7 @@ pub struct Element {
 
 #[derive(Debug, Clone)]
 pub struct InitialState {
-    pub init_state: Vec<Sentence>,
+    pub init_state: BTreeMap<Atom, Vec<Sentence>>,
     pub init_description: Option<Sentence>,
 }
 
@@ -278,8 +278,12 @@ impl fmt::Display for InitialState {
         }
   
         writeln!(f, "State:")?;
-        for element in &self.init_state {
-            writeln!(f, "-{}", element)?;
+        for (name, element) in &self.init_state {
+            writeln!(f, "-{}[", name)?;
+            for subelement in element {
+                writeln!(f, "--{}", subelement)?;
+            }
+            writeln!(f, "]")?;
         }
         writeln!(f, "}}")
     }
@@ -320,227 +324,6 @@ pub struct Document {
     pub decks: BTreeMap<Atom, Deck>,
     pub predicates: BTreeMap<(Atom, i32), Clause>,
     pub special_facts: Vec<(Atom, SpecialFactType)>
-}
-
-pub fn consult_file(filename: &str) -> Document {
-    fn make_atom(name: &str) -> Term {
-        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
-        Term::Sentence(Sentence{
-            name: new_atom(&name.to_string()),
-            elements: Vec::new(),
-            context
-        })
-    }
-    fn make_atom_n(name: &str) -> Sentence {
-        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
-        Sentence{
-            name: new_atom(&name.to_string()),
-            elements: Vec::new(),
-            context
-        }
-    }
-    
-    fn make_structured_term(name: &str, elements: Vec<Term>) -> Term {
-        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
-        Term::Sentence(Sentence{
-            name: new_atom(&name.to_string()),
-            elements:elements.clone(),
-            context
-        })
-    }
-    fn make_structured_term_n(name: &str, elements: Vec<Term>) -> Sentence {
-        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
-        Sentence{
-            name: new_atom(&name.to_string()),
-            elements:elements.clone(),
-            context
-        }
-    }
-    fn make_variable(name: &str) -> Term {
-        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
-        Term::Variable(
-             new_variable(name.to_string(), context, false)
-        )
-    }
-
-    
-    
-    let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
-    let mut decks =  BTreeMap::new();
-    {
-        let var_AP = make_variable("?AP");
-        let var_Civ = make_variable("?Civ");
-        let var_Week = make_variable("?Week");
-
-        //for End week
-        let var_Current = make_variable("?Current");
-        let var_Next = make_variable("?Next");
-        
-        decks.insert(new_atom("default"), Deck{
-            early_actions: vec![
-                Element {
-                    tag: ElementType::EarlyAction,
-                    name: make_atom_n("Show Stats"),
-                    priority: 1,
-                    preconds: vec![
-                        (make_structured_term("{} action points", vec![var_AP.clone()]), true),
-                        (make_structured_term("civilisation {}", vec![var_Civ.clone()]), true),
-                        (make_structured_term("week {}", vec![var_Week.clone()]), true),
-                    ],
-                    effects: vec![],
-                    description: Some(
-                        make_structured_term(
-                            "<p>It is week {}.</p> <p>You have {} AP, and your civ stat is {}.</p>",
-                            vec![var_Week.clone(), var_AP.clone(), var_Civ.clone()]
-                        )
-                    ),
-                    logic: None,
-                    next_deck: None,
-                    options: ElementOptions {once: true, hide_name: true}
-                }
-            ],
-            choices: vec![
-                Element {
-                    tag: ElementType::Choice,
-                    name: make_atom_n("Stay here"),
-                    priority: 1,
-                    preconds: vec![],
-                    effects: vec![],
-                    description: None,
-                    logic: None,
-                    next_deck: Some(make_atom("Light world")),
-                    options: ElementOptions {once: false, hide_name: true}
-                },
-                Element {
-                    tag: ElementType::Choice,
-                    name: make_atom_n("Cross over"),
-                    priority: 2,
-                    preconds: vec![],
-                    effects: vec![],
-                    description: None,
-                    logic: None,
-                    next_deck: Some(make_atom("Dark world")),
-                    options: ElementOptions {once: false, hide_name: true}
-                },
-                Element {
-                    tag: ElementType::Choice,
-                    name: make_atom_n("Plan"),
-                    priority: 3,
-                    preconds: vec![],
-                    effects: vec![],
-                    description: None,
-                    logic: None,
-                    next_deck: Some(make_atom("Plan")),
-                    options: ElementOptions {once: false, hide_name: true}
-                },
-
-                Element {
-                    tag: ElementType::Choice,
-                    name: make_atom_n("End week"),
-                    priority: 4,
-                    next_deck: None,
-                    preconds: vec![
-                        (make_structured_term("week {}", vec![var_Current.clone()]), true)
-                    ],
-                    effects: vec![
-                        (make_structured_term("{} action points", vec![make_atom("7")]),  true),
-                        (make_structured_term("week {}", vec![var_Next.clone()]), true)
-                    ],
-                    description: None,
-                    logic: Some(LogicVerb::Sentence(
-                        Sentence {
-                            name: new_atom("{} + {} = {}"),
-                            elements: vec![var_Current.clone(), make_atom("1"), var_Next.clone()],
-                            context
-                        }
-                    )),
-                    options: ElementOptions {once: false, hide_name: true}
-                },
-
-            ],
-            late_actions: vec![],
-        });
-    }
-    //let me check, how many more?
-    //uh, 7 I guess
-    {
-        //Go to work
-        let var_AP = make_variable("?AP");
-        let var_APNext = make_variable("?APNext");
-        let var_Civ = make_variable("?Civ");
-        let var_CivNext = make_variable("?CivNext");
-        
-        decks.insert(new_atom("Light world"), Deck {
-            early_actions: vec![],
-            choices: vec![
-                Element {
-                    tag: ElementType::Choice,
-                    name: make_atom_n("Go to work"),
-                    priority: 1,
-                    preconds: vec![
-                        (make_structured_term("{} action points", vec![var_AP.clone()]), true), 
-                        (make_structured_term("civilisation {}", vec![var_Civ.clone()]), true),
-                    ],
-                    effects: vec![
-                        (make_structured_term("{} action points", vec![var_APNext.clone()]), true),
-                        (make_structured_term("civilisation {}", vec![var_CivNext.clone()]), true)
-                    ],
-                    description: None,
-                    //
-                    logic: Some(LogicVerb::And(vec![
-                        LogicVerb::Sentence(
-                            make_structured_term_n("{} greater than {}", vec![var_AP.clone(), make_atom("0")])
-                        ),
-                        LogicVerb::Sentence(
-                            make_structured_term_n("{} - {} = {}", vec![var_AP, make_atom("1"), var_APNext])
-                        ),
-                       LogicVerb::Sentence(make_structured_term_n("{} is shifted to {} as {}", vec![
-                            var_Civ,
-                            make_atom("+"),
-                            var_CivNext
-                        ])),
-                    ])),
-                    next_deck: None,
-                    options: ElementOptions {once: false, hide_name: false}
-                },
-            ],
-            late_actions: vec![],
-        });
-        
-    }
-    //decks.insert(new_atom(), Deck{
-    //    early_actions: vec![],
-    //    choices: vec![],
-    //    late_actions: vec![],
-    //});
-    //decks.insert(new_atom(), Deck{
-    //    early_actions: vec![],
-    //    choices: vec![],
-    //    late_actions: vec![],
-    //});
-    
-    Document {
-        decks,
-        predicates: BTreeMap::new(),
-        special_facts: vec![
-            (new_atom("week {}"), SpecialFactType::Unique),
-            (new_atom("{} action points"), SpecialFactType::Unique),
-            (new_atom("civilisation {}"), SpecialFactType::Unique),
-        ],
-        initial_conditions: Some(
-            InitialState{
-                init_description: None,
-                init_state: vec![
-                    make_structured_term_n("week {}", vec![make_atom("1")]),
-                    make_structured_term_n("{} action points", vec![make_atom("7")]),
-                    make_structured_term_n("civilisation {}", vec![make_atom("5")])
-                ]                        
-            }
-        ),
-        
-
-    }
-    
 }
 
 use unicode_segmentation::UnicodeSegmentation;

@@ -15,10 +15,13 @@ use std::fs;
 extern crate yaml_rust;
 use yaml_rust::{YamlLoader, YamlEmitter};
 use unicode_segmentation::UnicodeSegmentation;
- use std::collections::HashMap;
+use std::collections::HashMap;
 use crate::tl_database::new_context;
 use crate::yaml_parser::{term_parse,document_parse};
 use crate::tl_database::Variable;
+
+use crate::rewrite_passes::emission::{process_document};
+use crate::js_emission::{print_procedure, write_document};
 
 fn main() {
     
@@ -30,51 +33,14 @@ fn main() {
     println!("{:?}", main);
 
     let parsed = document_parse(main);
-    println!("{}", parsed.initial_conditions.expect("error"));
+    //println!("{}", parsed.initial_conditions.expect("error"));
 
-    //let mut v_map : HashMap<String, Variable> = HashMap::new();
-    //let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
-    ////todo: figure out why this doesn't work
-    //println!("{}", term_parse(&mut "?test", &mut v_map, context));
-    //println!("{}", term_parse(&mut "<civilisation ?_>", &mut v_map, context));
-    //println!("{}", term_parse(&mut "civilisation ?CivNext", &mut v_map, context));
-    //println!("{}", term_parse(&mut "<?Civ is shifted to <+> as ?CivNext>",
-    //                            &mut v_map,
-    //                            context));
-
+    let processed = process_document(parsed);
     
-    //let write_file = File::create("compiled.js").unwrap();
-    //let mut writer = BufWriter::new(&write_file);
-    // 
-    //writeln!(&mut writer, "const predicates = {{");
-    //for (key, value) in file_results.into_iter() {
-    //    let (name, arity) = key;
-    //    println!("{}/{}:", name, arity);
-    //    let clause = value;
-    // 
-    //    println!("{}", clause);
-    //    let explicit = rewrite_passes::explicit_uni::process(clause);
-    //    println!("Explicit unification:\n {}", explicit);
-    // 
-    //    let extracted = rewrite_passes::variable_inits::process(explicit);
-    // 
-    //    println!("Variable init:\n {}", extracted);
-    // 
-    //    match &extracted.variables {
-    //        None => {}
-    //        Some(vars) => {
-    //            print!("Extracted variables:\n [");
-    //            for ex in vars {
-    //                print!("{},", ex);
-    //            }
-    //        }
-    //    }
-    //    println!("]");
-    //    let emission = rewrite_passes::emission::process(extracted);
-    //    println!("{}", emission);
-    //    js_emission::write_procedure(&mut writer, emission);
-    //}
-    // 
-    //writeln!(&mut writer, "}}");
-    //writer.flush().unwrap();
+    let write_file = File::create("compiled.js").unwrap();
+    let mut writer = BufWriter::new(&write_file);
+
+    write_document(&mut writer, &processed);
+    writer.flush().unwrap();
 }
+

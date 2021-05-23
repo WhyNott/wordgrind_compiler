@@ -241,18 +241,22 @@ fn initial_state_parse(yaml_data:&Yaml) -> InitialState {
     } else {
         None
     };
-    let init_state: Vec<Sentence> = if let Yaml::Array(condition_data) = &yaml_data["condition"] {
-        let mut condition_sentences = Vec::with_capacity(condition_data.len());
+    let init_state: BTreeMap<Atom, Vec<Sentence>> = if let Yaml::Array(condition_data) = &yaml_data["condition"] {
+        let mut condition_sentences : BTreeMap<Atom, Vec<Sentence>>  = BTreeMap::new();
         for yaml_cond in condition_data {
             if let Term::Sentence(s) = term_parse(yaml_cond.as_str().expect(emsg),&mut v_map, context) {
-                condition_sentences.push(s);
+                if let Some(mut v) = condition_sentences.get_mut(&s.name) {
+                    v.push(s);
+                } else {
+                    condition_sentences.insert(s.name, vec![s]);
+                }
             } else {
                 panic!("variable shouldnt be here");
             }
         }
         condition_sentences
     } else {
-        Vec::new()
+        BTreeMap::new()
     };
 
     InitialState {init_state, init_description}

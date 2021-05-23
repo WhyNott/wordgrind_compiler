@@ -1,0 +1,52 @@
+Predicates:
+  - <Kitchen> is a room
+  - <Living room> is a room
+  - <It is really shiny> is the followup text for <Knife>
+  - <It seems to be missing batteries> is the followup text for <TV Remote>
+
+default:
+  Choices:
+    Walk from ?A to ?B:
+      available when:
+        - Player is in ?A
+      such that:
+        and:
+          - ?B is a room
+          - ?A is a room
+          - ?A is not ?B
+      displays:
+        You walk from ?A to ?B. You are now in ?B.
+      causes:
+        - Player is in ?B #Note: it might be beneficial to have <Player is in ?_> and <?_ is in ?_> as unique 
+        - removes: Player is in ?A
+
+    Pick up ?Item:
+      available when:
+        - Player is in ?Place
+        - ?Item is in ?Place
+      such that:
+        ?Followup is the followup text for ?Item
+      displays:
+        You have sucessfully picked up ?Item. ?Followup
+      causes:
+        - Player has ?Item
+        - removes: <?Item is in ?Place>
+
+    Drop ?Item:
+      available when:
+        - Player is in ?Place
+        - Player has ?Item
+      displays:
+        You have dropped ?Item.
+      causes:
+        - ?Item is in ?Place
+        - removes: <Player has ?Item>
+
+
+Initial state:
+  condition:
+    - Player is in <Kitchen>
+    - <Knife> is in <Kitchen>
+    - <TV Remote> is in <Living Room>
+  displays:
+    You suddenly appear into existance in a kitchen. 

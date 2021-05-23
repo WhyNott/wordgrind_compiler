@@ -305,27 +305,80 @@ pub mod emission {
     use crate::parser;
     use crate::rewrite_passes::explicit_uni;
     use crate::rewrite_passes::variable_inits;
-    use crate::tl_database::{Context, Variable};
-    use std::collections::BTreeSet;
+    use crate::tl_database::{Atom, Context, Variable};
+    use std::collections::{BTreeSet, BTreeMap};
     use itertools::Itertools;
+
+    #[derive(Debug, Clone)]
+    pub struct Deck {
+        pub early_actions: Vec<Element>,
+        pub choices: Vec<Element>,
+        pub late_actions: Vec<Element>,
+    }
     
-     #[derive(Debug)]
+    #[derive(Debug, Clone)]
+    pub struct Document {
+        pub initial_conditions: Option<parser::InitialState>,
+        pub decks: BTreeMap<Atom, Deck>,
+        pub predicates: BTreeMap<Atom, Procedure>,
+        pub special_facts: Vec<(Atom, parser::SpecialFactType)>
+    }
+
+    pub fn process_document(input: parser::Document) -> Document {
+        let initial_conditions = input.initial_conditions;  
+        let mut decks: BTreeMap<Atom, Deck> = BTreeMap::new();                       
+        let mut predicates: BTreeMap<Atom, Procedure> = BTreeMap::new();                        
+        let special_facts: Vec<(Atom, parser::SpecialFactType)> = input.special_facts;
+
+        for (name, deck) in input.decks {
+            let mut early_actions: Vec<Element> = Vec::new();
+            let mut choices: Vec<Element> = Vec::new();      
+            let mut late_actions: Vec<Element> = Vec::new();
+
+            for element in deck.early_actions {
+                early_actions.push(process_element(element));
+            }
+            for element in deck.choices {
+                choices.push(process_element(element));
+            }
+            for element in deck.late_actions {
+                late_actions.push(process_element(element));
+            } 
+            
+            let new_deck = Deck {early_actions, choices, late_actions};
+            decks.insert(name, new_deck);
+        }
+        
+        for ((name, _), pred) in input.predicates {
+            let explicit_uni = explicit_uni::process(pred);
+            let var_inits = variable_inits::process(explicit_uni);
+            let emission = process(var_inits);
+            predicates.insert(name, emission);
+        }
+        
+        
+        Document {initial_conditions, decks, predicates, special_facts} 
+    }
+    
+     #[derive(Debug, Clone)]
     pub struct Element {
-        pub tag: parser::ElementType,
-        pub name: parser::Sentence,
-        pub variables: Vec<Variable>,
+        pub tag: parser::ElementType,//
+        pub name: parser::Sentence,//
+        pub variables: Vec<Variable>,//
         pub priority: i32,
-        pub preconds: Vec<(parser::Term, bool)>,
-        pub effects: Vec<(parser::Term, bool)>,
-        pub description: Option<parser::Term>,
-        pub logic: Vec<EmissionVerb>,
-        pub next_deck: Option<parser::Term>,
+        pub preconds: Vec<(parser::Term, bool)>,//
+        pub effects: Vec<(parser::Term, bool)>,//
+        pub description: Option<parser::Term>,//
+        pub logic: Vec<EmissionVerb>,//
+        pub logic_body: Option<EmissionVerb>,//
+        pub next_deck: Option<parser::Term>,//
         pub options: parser::ElementOptions,
     }
     
    
     fn process_element(input:parser::Element)-> Element{
         let mut gathered_variables = BTreeSet::new();
+        let mut logic_body = None;
         let logic = match input.logic {
             None => vec![],
             Some(lv) => {
@@ -339,7 +392,7 @@ pub mod emission {
                     };
                 variable_inits::process_body(&ex_uni, &mut gathered_variables);
                 let mut continuations = Vec::new();
-                process_body(ex_uni, &mut continuations, false);
+                logic_body = Some(process_body(ex_uni, &mut continuations, false));
                 continuations
             }
         };
@@ -371,6 +424,7 @@ pub mod emission {
             effects: input.effects,
             description: input.description,
             logic: logic,
+            logic_body,
             next_deck: input.next_deck,
             options: input.options,
         }
@@ -378,7 +432,7 @@ pub mod emission {
     }
     
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Procedure {
         pub head: explicit_uni::Sentence,
         pub variables: Vec<Variable>,
@@ -478,7 +532,7 @@ pub mod emission {
         let cont_num = if last { 0 } else { conts.len() as i32 };
         match input {
             explicit_uni::LogicVerb::Sentence(s) => EmissionVerb::Call(s, cont_num),
-            explicit_uni::LogicVerb::And(lvs) => {
+               explicit_uni::LogicVerb::And(lvs) => {
                 let lvs_len = lvs.len();
                 let mut lvs_iterator = lvs.into_iter();
                 let first_element = lvs_iterator.next().expect("And is empty!");
