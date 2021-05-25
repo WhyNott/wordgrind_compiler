@@ -1,6 +1,6 @@
 [package]
 name = "wordgrind_compiler"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["janwanot"]
 edition = "2018"
 

@@ -1,8 +1,22 @@
 Predicates:
+  # facts
   - <Kitchen> is a room
   - <Living room> is a room
-  - <It is really shiny> is the followup text for <Knife>
+  - <Bathroom> is a room
+  - <Computer room> is a room
+  - <It's really shiny.> is the followup text for <Knife>
   - <It seems to be missing batteries> is the followup text for <TV Remote>
+  - "<It's slippery!> is the followup text for <Soap>"
+  - <Kitchen> is connected to <Living room>
+  - <Living room> is connected to <Bathroom>
+  - <Living room> is connected to <Computer room>
+  
+  # logic
+  - ?A and ?B are walkable:
+      or:
+        - ?A is connected to ?B
+        - ?B is connected to ?A
+  
 
 default:
   Choices:
@@ -13,7 +27,7 @@ default:
         and:
           - ?B is a room
           - ?A is a room
-          - ?A is not ?B
+          - ?A and ?B are walkable
       displays:
         You walk from ?A to ?B. You are now in ?B.
       causes:
@@ -42,11 +56,27 @@ default:
         - ?Item is in ?Place
         - removes: <Player has ?Item>
 
+    Use computer:
+      available when:
+        - Player is in <Computer room>
+      next deck:
+        Computer
 
+Computer:
+  Choices:
+    Check your email:
+      displays:
+        No new messages!
+    Play minesweeper:
+      displays:
+        This almost goes well, but you're bad at counting so you loose.
+
+          
 Initial state:
   condition:
     - Player is in <Kitchen>
     - <Knife> is in <Kitchen>
-    - <TV Remote> is in <Living Room>
+    - <Soap> is in <Bathroom>
+    - <TV Remote> is in <Living room>
   displays:
     You suddenly appear into existance in a kitchen. 

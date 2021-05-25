@@ -41,7 +41,6 @@ const DB = {
         let item = list[index];
         let negation = false;
         if (!item.is_atom() && item.value.functor == "not" ) {
-            console.log("test")
             negation = true;
             item = item.value.args[0];
         }
@@ -63,8 +62,9 @@ const DB = {
                         else
                             this.match_list(list, index+1, logic);
                     }
-                    trail.restore_choice_point();
+                    
                 }
+                trail.restore_choice_point();
             }
             if (negation){
                 if (list.length == (index+1))
