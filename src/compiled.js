@@ -3,7 +3,7 @@ DB.store = {
         data: [make_structured_model('Player is in {}', [make_atom_model('Kitchen'), ]),    ] 
  },
     '{} is in {}' : {
-        data: [make_structured_model('{} is in {}', [make_atom_model('Knife'), make_atom_model('Kitchen'), ]),make_structured_model('{} is in {}', [make_atom_model('Soap'), make_atom_model('Bathroom'), ]),make_structured_model('{} is in {}', [make_atom_model('TV Remote'), make_atom_model('Living room'), ]),    ] 
+        data: [make_structured_model('{} is in {}', [make_atom_model('Knife'), make_atom_model('Kitchen'), ]),make_structured_model('{} is in {}', [make_atom_model('Batteries'), make_atom_model('Kitchen'), ]),make_structured_model('{} is in {}', [make_atom_model('Soap'), make_atom_model('Bathroom'), ]),make_structured_model('{} is in {}', [make_atom_model('TV Remote'), make_atom_model('Living room'), ]),    ] 
  },
 };
 const decks = {
@@ -101,6 +101,51 @@ const decks = {
                 next_deck.unify_with(make_atom_model('Computer'));
                 DB.match(cont_0,
                     make_structured_model('Player is in {}', [make_atom_model('Computer room'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Watch TV(1)'));
+                description.unify_with(make_atom_model('You watch some TV, but nothing very interesting is on.'));
+                DB.match(cont_0,
+                    make_structured_model('Player is in {}', [make_atom_model('Living room'), ]),
+                    make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
+                    make_atom_model('Remote has batteries'),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Watch TV(2)'));
+                description.unify_with(make_atom_model('You can\'t turn on the TV, becuase you misplaced the remote somewhere.'));
+                DB.match(cont_0,
+                    make_structured_model('Player is in {}', [make_atom_model('Living room'), ]),
+                    make_structured_term('not', [make_structured_model('Player has {}', [make_atom_model('TV Remote'), ])]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Watch TV(3)'));
+                description.unify_with(make_atom_model('You try to turn on the TV, but to no avail. You realize it does not have batteries! You took them out when you were babysitting your nephiew last week. His dumb cartoons were giving you a headache.'));
+                DB.match(cont_0,
+                    make_structured_model('Player is in {}', [make_atom_model('Living room'), ]),
+                    make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
+                    make_structured_term('not', [make_atom_model('Remote has batteries')]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Insert batteries into remote'));
+                effects.unify_with(make_structured_term('', [
+                make_atom_model('Remote has batteries'),
+                make_structured_term('not', [make_structured_model('Player has {}', [make_atom_model('Batteries'), ])]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
+                    make_structured_model('Player has {}', [make_atom_model('Batteries'), ]),
                 );
             },
 
@@ -208,6 +253,19 @@ const predicates = {
         };
         const cont_3 = () => {
             {
+                const model = make_atom_model('Batteries');
+                const model_name = model.pprint();
+                if (head_1.unify_with(model)){
+                    dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
+                    cont_0();
+                } else {
+                    dc.add_new_step(`Failed: ${head_1.dereferenced_value().direct_name()} = ${model_name}`);
+                }
+            }
+
+        };
+        const cont_4 = () => {
+            {
                 const model = make_atom_model('Soap');
                 const model_name = model.pprint();
                 if (head_1.unify_with(model)){
@@ -236,7 +294,7 @@ const predicates = {
         dc.add_new_step('backup restored');
 
         {
-            const model = make_atom_model('It seems to be missing batteries');
+            const model = make_atom_model('It seems to be missing batteries.');
             const model_name = model.pprint();
             if (head_0.unify_with(model)){
                 dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
@@ -250,11 +308,25 @@ const predicates = {
         dc.add_new_step('backup restored');
 
         {
-            const model = make_atom_model('It\'s slippery!');
+            const model = make_atom_model('You\'re not really sure if they are AA or AAA.');
             const model_name = model.pprint();
             if (head_0.unify_with(model)){
                 dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
                 cont_3();
+            } else {
+                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
+            }
+        }
+
+        trail.restore_choice_point();
+        dc.add_new_step('backup restored');
+
+        {
+            const model = make_atom_model('It\'s slippery! ');
+            const model_name = model.pprint();
+            if (head_0.unify_with(model)){
+                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
+                cont_4();
             } else {
                 dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
             }
@@ -389,23 +461,23 @@ const predicates = {
         if (!A.bound()) {
             console.assert(B.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            A.unify_with(make_atom(C.content().value - B.content().value));
+            A.unify_with(make_atom(parseInt(C.content().value) - parseInt(B.content().value)));
             cont();
         } else if (!B.bound()) {
             console.assert(A.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            B.unify_with(make_atom(C.content().value - A.content().value));
+            B.unify_with(make_atom(parseInt(C.content().value) - parseInt(A.content().value)));
             cont();
         } else if (!C.bound()) {
             console.assert(B.dereferenced().is_atom());
             console.assert(A.dereferenced().is_atom());
-            C.unify_with(make_atom(A.content().value + B.content().value));
+            C.unify_with(make_atom(parseInt(A.content().value) + parseInt(B.content().value)));
             cont();
         } else {
             console.assert(A.dereferenced().is_atom());
             console.assert(B.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            if (C.unify_with(make_atom(A.content().value + B.content().value)))
+            if (C.unify_with(make_atom(parseInt(A.content().value) + parseInt(B.content().value))))
                 cont();
         }
         
@@ -418,9 +490,9 @@ const predicates = {
         console.assert(Start.bound());
         console.assert(Dir.bound());
         if (Dir.content().value == "+")
-            End.unify_with(make_atom(Start.content().value + 5));
+            End.unify_with(make_atom(parseInt(Start.content().value) + 5));
         else if (Dir.content().value == "-")
-            End.unify_with(make_atom(Start.content().value - 5));
+            End.unify_with(make_atom(parseInt(Start.content().value) - 5));
         else
             console.assert(false);
         cont();
@@ -429,7 +501,7 @@ const predicates = {
     '{} greater than {}':(A, B, index, cont) => {
         console.assert(A.bound());
         console.assert(B.bound());
-        if (A.content().value > B.content().value)
+        if (parseInt(A.content().value) > parseInt(B.content().value))
             cont();
     },
 

@@ -2,3 +2,5 @@ The purpose of this file is to document most common user mistakes (syntax, etc) 
 
 
 Confused the name for element parameter: 1 
+
+Left deck without a fallback choice, so that it was possible to have no choices: 1 

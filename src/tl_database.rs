@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::fmt;
-use std::thread;
 
 #[derive(Debug, Clone)]
 pub struct ContextData {
@@ -145,7 +144,6 @@ impl fmt::Display for Atom {
     }
 }
 
-use std::cell::RefMut;
 pub fn new_atom(string: &str) -> Atom {
     let mut index = 0;
     ATOMS.with(|v| {

@@ -5,12 +5,11 @@ use std::fs::File;
 use std::io::{self, BufRead};
 
 use std::{
-    result::Result,
     io::{Write},
 };
 
 
-use crate::tl_database::{Context, Variable};
+use crate::tl_database::{Variable};
 
 use crate::parser::{SpecialFactType};
 struct JSDocument<'a>(&'a ast::Document);
@@ -62,14 +61,14 @@ impl<'a> fmt::Display for JSDocument<'a> {
         
         writeln!(f, "const predicates = {{")?;
         for procedure in doc.predicates.values(){
-            writeln!(f,"{}", JSProcedure(procedure));
+            writeln!(f,"{}", JSProcedure(procedure))?;
         }
         let file = File::open("js_assets/builtin.js").expect("Standard library file not present!");
         let mut builtin_predicates = io::BufReader::new(file).lines();
         builtin_predicates.next();//skip initial line
         for line in builtin_predicates {
             if let Ok(ip) = line {
-                writeln!(f,"{}", ip);
+                writeln!(f,"{}", ip)?;
             }
         }
 
@@ -101,7 +100,7 @@ pub fn write_procedure<'a>( f : &mut std::io::BufWriter<&std::fs::File>, proc : 
 }
 
 pub fn write_document<'a>( f : &mut std::io::BufWriter<&std::fs::File>, doc : &'a ast::Document){
-    writeln!(f,"{}", JSDocument(doc));
+    writeln!(f,"{}", JSDocument(doc)).expect("Failed to write document!");
 }
 
 

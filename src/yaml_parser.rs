@@ -4,18 +4,18 @@ use std::collections::HashMap;
 use std::iter::Peekable; 
 
 use crate::tl_database::{
-    existing_variable, new_atom, new_context, new_variable, Atom, Context, Variable,
+     new_atom, new_context, new_variable, Atom, Context, Variable,
 };
 
 use crate::parser::{
-    Sentence, Term, LogicVerb, Clause, Parameters, ElementType, ElementOptions, Element,
-    InitialState, Deck, WeaveItem, TopLevelItem, SpecialFactType, Document,
+    Sentence, Term, LogicVerb, Clause, ElementType, ElementOptions, Element,
+    InitialState, Deck, WeaveItem, SpecialFactType, Document,
     join_clauses_of_same_predicate
 };
 use std::collections::BTreeMap;
 
 extern crate yaml_rust;
-use yaml_rust::yaml::{Yaml, Hash};
+use yaml_rust::yaml::{Yaml};
 
 
 pub fn document_parse(yaml_doc:&Yaml) -> Document {
@@ -82,7 +82,7 @@ fn element_parse(key:&Yaml, hash_data:&Yaml, tag: ElementType) -> Element {
         int as i32 //lol
     } else {0};
     
-    let mut preconds: Vec<(Term, bool)> = if let Yaml::Array(arr) = &hash_data["available when"] {
+    let preconds: Vec<(Term, bool)> = if let Yaml::Array(arr) = &hash_data["available when"] {
         let mut new_arr = Vec::with_capacity(arr.len());
         for sent in arr {
             let value = if let Yaml::String(strg) = sent {
@@ -98,7 +98,7 @@ fn element_parse(key:&Yaml, hash_data:&Yaml, tag: ElementType) -> Element {
     
 
         
-    let mut effects: Vec<(Term, bool)> = if let Yaml::Array(arr) = &hash_data["causes"] {
+    let effects: Vec<(Term, bool)> = if let Yaml::Array(arr) = &hash_data["causes"] {
         let mut new_arr = Vec::with_capacity(arr.len());
         for sent in arr {
             let value = if let Yaml::String(s) = sent {
@@ -245,7 +245,7 @@ fn initial_state_parse(yaml_data:&Yaml) -> InitialState {
         let mut condition_sentences : BTreeMap<Atom, Vec<Sentence>>  = BTreeMap::new();
         for yaml_cond in condition_data {
             if let Term::Sentence(s) = term_parse(yaml_cond.as_str().expect(emsg),&mut v_map, context) {
-                if let Some(mut v) = condition_sentences.get_mut(&s.name) {
+                if let Some(v) = condition_sentences.get_mut(&s.name) {
                     v.push(s);
                 } else {
                     condition_sentences.insert(s.name, vec![s]);

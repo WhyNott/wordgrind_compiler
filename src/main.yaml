@@ -14,14 +14,18 @@ Unique facts:
   - civilisation ?_
   - money ?_
 
-Default:
+default:
   Choices:
     Stay here:
-      leads into:
+      next deck:
         Light world
     Cross over:
-      leads into:
+      next deck:
         Dark world
+    Plan:
+      next deck:
+        Plans
+        
     End week:
       available when:
         - week ?Current
@@ -40,7 +44,7 @@ Light world:
         - money ?Mon
       such that: 
        and:
-         - ?AP is greater than <0>
+         - ?AP greater than <0>
          - ?AP - <1> = ?APNext
          - ?Civ is shifted to <+> as ?CivNext
          - ?Mon + <5> = ?MonNext
@@ -48,7 +52,35 @@ Light world:
         - ?APNext action points
         - civilisation ?CivNext
         - money ?MonNext
+    Go back:
+      
+Dark world:
+  Choices:
+    Go scavenging:
+      available when:
+        - ?AP action points
+        - civilisation ?Civ
+        - money ?Mon
+      such that: 
+       and:
+         - ?AP greater than <0>
+         - ?AP - <1> = ?APNext
+         - ?Civ is shifted to <-> as ?CivNext
+         - ?Mon + <5> = ?MonNext
+      causes:
+        - ?APNext action points
+        - civilisation ?CivNext
+        - money ?MonNext
+    Go back:
+        
+Plans:
+  Choices:
+    placeholder for now:
+      displays:
+        This option is left empty for now.
+    Go back:
 
+        
 #Neighbour visit:
  # Weave:
  #   -  >
@@ -108,19 +140,38 @@ Light world:
 #W#eaveTest:
  # #example stolen from ink documentation
  # Weave:
- #   - "Well, Poirot? Murder or suicide?": #1
- #       - "Murder!": #->1.1
- #           - "And who did it?" #1.1
- #           - "Detective-Inspector Japp!": {} #->1.1.2 
- #           - "Captain Hastings!": {} #->1.1.2
- #           - "Myself!": {} #->1.1.2
- #           - "You must be joking!" #1.1.2
- #           -  "Mon ami, I am deadly serious.": {} #->2
- #           - "If only..." : {} #->2
- #       - "Suicide!": #->1.2
- #         - "Really, Poirot? Are you quite sure?" # 1.2
- #         - "Quite sure.": {} #->2
- #         - "It is perfectly obvious.": {} #->2
+ #   - "Well, Poirot? Murder or suicide?" #1
+ #   - "Murder!": #->1.1
+ #       - "And who did it?" #1.1
+ #       - "Detective-Inspector Japp!":  #->1.1.2 
+ #       - "Captain Hastings!":  #->1.1.2
+ #       - "Myself!": #->1.1.2
+ #       - "You must be joking!" #1.1.2
+ #       -  "Mon ami, I am deadly serious.":  #->2
+ #       - "If only..." :  #->2
+ #   - "Suicide!": #->1.2
+ #     - "Really, Poirot? Are you quite sure?" # 1.2
+ #     - "Quite sure.":  #->2
+ #     - "It is perfectly obvious.":  #->2
  #         
  #   - Mrs. Christie lowered her manuscript a moment. The rest of the writing group sat, open-mouthed. #2
  #     
+
+ ##example stolen from ink documentation                                                                
+ #Weave:                                                                                                
+ #  - '"Well, Poirot? Murder or suicide?"': #1                                                             
+ #    - '>"Murder!"': #->1.1                                                                                 
+ #      - '"And who did it?"': #1.1                                                                        
+ #        - '>"Detective-Inspector Japp!"'  #->1.1.2                                                        
+ #        - '>"Captain Hastings!"'  #->1.1.2                                                                
+ #        - '>"Myself!"' #->1.1.2                                                                           
+ #      - '"You must be joking!"': #1.1.2                                                                  
+ #        -  '>"Mon ami, I am deadly serious."'  #->2                                                       
+ #        - '>"If only..."'   #->2                                                                          
+ #    - '>"Suicide!"': #->1.2                                                                                
+ #      - '"Really, Poirot? Are you quite sure?"': # 1.2                                                     
+ #        - '">Quite sure."'  #->2                                                                            
+ #        - '">It is perfectly obvious."'  #->2                                                               
+ #                                                                                                      
+ #  - Mrs. Christie lowered her manuscript a moment. The rest of the writing group sat, open-mouthed. #2
+                                                                                                       

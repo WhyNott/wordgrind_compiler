@@ -10,23 +10,23 @@ const predicates = {
         if (!A.bound()) {
             console.assert(B.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            A.unify_with(make_atom(C.content().value - B.content().value));
+            A.unify_with(make_atom(parseInt(C.content().value) - parseInt(B.content().value)));
             cont();
         } else if (!B.bound()) {
             console.assert(A.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            B.unify_with(make_atom(C.content().value - A.content().value));
+            B.unify_with(make_atom(parseInt(C.content().value) - parseInt(A.content().value)));
             cont();
         } else if (!C.bound()) {
             console.assert(B.dereferenced().is_atom());
             console.assert(A.dereferenced().is_atom());
-            C.unify_with(make_atom(A.content().value + B.content().value));
+            C.unify_with(make_atom(parseInt(A.content().value) + parseInt(B.content().value)));
             cont();
         } else {
             console.assert(A.dereferenced().is_atom());
             console.assert(B.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            if (C.unify_with(make_atom(A.content().value + B.content().value)))
+            if (C.unify_with(make_atom(parseInt(A.content().value) + parseInt(B.content().value))))
                 cont();
         }
         
@@ -39,9 +39,9 @@ const predicates = {
         console.assert(Start.bound());
         console.assert(Dir.bound());
         if (Dir.content().value == "+")
-            End.unify_with(make_atom(Start.content().value + 5));
+            End.unify_with(make_atom(parseInt(Start.content().value) + 5));
         else if (Dir.content().value == "-")
-            End.unify_with(make_atom(Start.content().value - 5));
+            End.unify_with(make_atom(parseInt(Start.content().value) - 5));
         else
             console.assert(false);
         cont();
@@ -50,7 +50,7 @@ const predicates = {
     '{} greater than {}':(A, B, index, cont) => {
         console.assert(A.bound());
         console.assert(B.bound());
-        if (A.content().value > B.content().value)
+        if (parseInt(A.content().value) > parseInt(B.content().value))
             cont();
     },
 

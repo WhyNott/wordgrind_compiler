@@ -5,8 +5,9 @@ Predicates:
   - <Bathroom> is a room
   - <Computer room> is a room
   - <It's really shiny.> is the followup text for <Knife>
-  - <It seems to be missing batteries> is the followup text for <TV Remote>
-  - "<It's slippery!> is the followup text for <Soap>"
+  - <It seems to be missing batteries.> is the followup text for <TV Remote>
+  - <You're not really sure if they are AA or AAA.> is the followup text for <Batteries>
+  - <It's slippery! > is the followup text for <Soap>
   - <Kitchen> is connected to <Living room>
   - <Living room> is connected to <Bathroom>
   - <Living room> is connected to <Computer room>
@@ -17,7 +18,8 @@ Predicates:
         - ?A is connected to ?B
         - ?B is connected to ?A
   
-
+#note to self:
+# If I want multiple choices with the same name (and I do want that sometimes) I will need to represent them as a list rather than an object. It makes more sense that way, too.
 default:
   Choices:
     Walk from ?A to ?B:
@@ -62,6 +64,40 @@ default:
       next deck:
         Computer
 
+    Watch TV(1):
+      available when:
+        - Player is in <Living room>
+        - Player has <TV Remote>
+        - Remote has batteries
+      displays:
+        You watch some TV, but nothing very interesting is on.
+
+    #Bug - this doesn't seem to work!
+    Watch TV(2):
+      available when:
+        - Player is in <Living room>
+        - not: Player has <TV Remote>
+      displays:
+        You can't turn on the TV, becuase you misplaced the remote somewhere.
+
+    #This doesn't seem to work either. 
+    Watch TV(3):
+      available when:
+        - Player is in <Living room>
+        - Player has <TV Remote>
+        - not: Remote has batteries
+      displays:
+        You try to turn on the TV, but to no avail. You realize it does not have batteries! You took them out when you were babysitting your nephiew last week. His dumb cartoons were giving you a headache. 
+        
+
+    Insert batteries into remote:
+      available when:
+        - Player has <TV Remote>
+        - Player has <Batteries>
+      causes:
+        - Remote has batteries
+        - removes: Player has <Batteries>
+        
 Computer:
   Choices:
     Check your email:
@@ -76,6 +112,7 @@ Initial state:
   condition:
     - Player is in <Kitchen>
     - <Knife> is in <Kitchen>
+    - <Batteries> is in <Kitchen>
     - <Soap> is in <Bathroom>
     - <TV Remote> is in <Living room>
   displays:

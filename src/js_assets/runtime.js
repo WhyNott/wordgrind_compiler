@@ -36,7 +36,7 @@ const DB = {
         }
     },
 
-    
+    //hey, why do I use recursion here. Couldn't I just use a nested for loop.
     match_list: function (list, index, logic){
         let item = list[index];
         let negation = false;
@@ -66,14 +66,14 @@ const DB = {
                 }
                 trail.restore_choice_point();
             }
-            if (negation){
-                if (list.length == (index+1))
-                    logic();
-                else
-                    this.match_list(list, index+1, logic);
-            }
             trail.remove_choice_point();
-        } 
+        }
+        if (negation){
+            if (list.length == (index+1))
+                logic();
+            else
+                this.match_list(list, index+1, logic);
+        }
         
     },
     match: function (logic, ...facts) {

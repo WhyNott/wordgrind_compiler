@@ -2,7 +2,7 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
 use crate::tl_database::{
-    existing_variable, new_atom, new_context, new_variable, Atom, Context, Variable,
+     new_atom,  new_variable, Atom, Context, Variable,
 };
 
 use std::fmt;
@@ -326,7 +326,6 @@ pub struct Document {
     pub special_facts: Vec<(Atom, SpecialFactType)>
 }
 
-use unicode_segmentation::UnicodeSegmentation;
 use unicode_segmentation::UWordBounds;
 use std::collections::HashMap;
 

@@ -2,23 +2,32 @@
   <head>
     <script src="js_assets/runtime.js"></script>
     <script src="compiled.js"></script>
-    <script src="js_assets/node_debugger.js"></script>
-    <script src="js_assets/cytoscape.min.js"></script>
-    <script src="js_assets/dagre.js"></script>
-    <script src="js_assets/cytoscape-dagre.js"></script>
+    <!-- <script src="js_assets/node_debugger.js"></script> -->
+    <!-- <script src="js_assets/cytoscape.min.js"></script> -->
+    <!-- <script src="js_assets/dagre.js"></script> -->
+    <!-- <script src="js_assets/cytoscape-dagre.js"></script> -->
     <script>
-      window.addEventListener('DOMContentLoaded', function(){
-          const picker = document.getElementById("num_picker");
-          const label = document.getElementById("label_display");
-          init_debugger(picker, label);
-          picker.addEventListener('input', (n) => dc.set_step_to(Number(n.data)));
-          bring_up_choices();
-      });
+       window.addEventListener('DOMContentLoaded', function(){
+      //     const picker = document.getElementById("num_picker");
+      //     const label = document.getElementById("label_display");
+      //     //init_debugger(picker, label);
+           //     picker.addEventListener('input', (n) => dc.set_step_to(Number(n.data)));
+           dc = {
+               clear(){},
+              add_new_step(label){},
+               set_step_to(num){},
+              step_forward(){},
+              step_backward(){},
+              
+          };
+           bring_up_choices();
+       });
 
       function set_description(name, desc){
           const description = document.getElementById("description");
           if (name)
               description.insertAdjacentHTML('beforeend', "<p><b>"+name.pprint(bracketed = false)+"</p></b>");
+ 
           description.insertAdjacentHTML('beforeend', desc ? desc : "");
           description.scrollTop = description.scrollHeight;
       }
@@ -82,11 +91,11 @@
     </div>
 
     <div>
-      <div style="height: 50rem; width: 50vw;">
-        <input type="number" disabled="true" name="quantity" min="0" max="0" value="0" id="num_picker">
-        <h3 style="display: inline-block;padding-left: 1rem;" id="label_display">...</h3>
-        <div style=" border-style: solid; border-width: thin; height: 100%" id="cy"> </div>
-      </div>
+      <!-- <div style="height: 50rem; width: 50vw;"> -->
+      <!--   <input type="number" disabled="true" name="quantity" min="0" max="0" value="0" id="num_picker"> -->
+      <!--   <h3 style="display: inline-block;padding-left: 1rem;" id="label_display">...</h3> -->
+      <!--   <div style=" border-style: solid; border-width: thin; height: 100%" id="cy"> </div> -->
+      <!-- </div> -->
       <!-- <img alt="debug" src="imgs/empty.png"/> -->
       
     </div>
