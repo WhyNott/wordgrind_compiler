@@ -14,13 +14,15 @@
            //     picker.addEventListener('input', (n) => dc.set_step_to(Number(n.data)));
            dc = {
                clear(){},
-              add_new_step(label){},
+               add_new_step(label){},
                set_step_to(num){},
-              step_forward(){},
-              step_backward(){},
-              
+               step_forward(){},
+               step_backward(){},
           };
+           make_choice(-1);
            bring_up_choices();
+           const description = document.getElementById("description");
+           description.innerHTML = init_desc;
        });
 
       function set_description(name, desc){
@@ -33,7 +35,6 @@
       }
       
       function bring_up_choices(){
-          available_choices = find_choices();
           const choice_list = document.getElementById("choices");
           choice_list.innerHTML = '';
           let i = 1;
@@ -78,7 +79,7 @@
   </Head>
   <body>
     <div>
-      <p id="description">Deck demo engaged.</p>
+      <p id="description"></p>
       <ul id="choices">
         <li><a href="">1.Blah blah blah</a></li>
         <li><a href="">2.Blah blah blah</a></li>

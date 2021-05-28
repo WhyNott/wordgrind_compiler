@@ -19,8 +19,15 @@ impl<'a> fmt::Display for JSDocument<'a> {
         let doc = self.0;
         
 
-        writeln!(f, "DB.store = {{")?;
+        
         if let Some(initial_state) = &doc.initial_conditions {
+            if let Some(sentence) = &initial_state.init_description {
+                   writeln!(f, "const init_desc = '{}';", sentence.name)?;
+            } else {
+                writeln!(f, "const init_desc = '';")?;
+            } 
+            
+            writeln!(f, "DB.store = {{")?;
             let mut initial_sentences = initial_state.init_state.clone();
             for (name, fact) in &doc.special_facts {
                 writeln!(f, "    '{}' : {{", name)?;
@@ -46,9 +53,14 @@ impl<'a> fmt::Display for JSDocument<'a> {
                 
                 writeln!(f, "    ] \n }},")?;
             }
+            writeln!(f, "}};")?;
+        } else {
+            writeln!(f, "const init_desc = '';")?;
+            writeln!(f, "DB.store = {{ }};")?;
+            
         }
         
-        writeln!(f, "}};")?;
+        
         
         writeln!(f, "const decks = {{")?;
         for (name, deck) in doc.decks.iter() {

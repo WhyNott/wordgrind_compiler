@@ -1,12 +1,28 @@
+const init_desc = 'You wake up in a cold sweat. You had horrible nightmares all night, and now you have a horrible headache.';
 DB.store = {
     'Player is in {}' : {
-        data: [make_structured_model('Player is in {}', [make_atom_model('Kitchen'), ]),    ] 
+        data: [make_structured_model('Player is in {}', [make_atom_model('bedroom'), ]),    ] 
  },
     '{} is in {}' : {
-        data: [make_structured_model('{} is in {}', [make_atom_model('Knife'), make_atom_model('Kitchen'), ]),make_structured_model('{} is in {}', [make_atom_model('Batteries'), make_atom_model('Kitchen'), ]),make_structured_model('{} is in {}', [make_atom_model('Soap'), make_atom_model('Bathroom'), ]),make_structured_model('{} is in {}', [make_atom_model('TV Remote'), make_atom_model('Living room'), ]),    ] 
+        data: [make_structured_model('{} is in {}', [make_atom_model('Knife'), make_atom_model('kitchen'), ]),make_structured_model('{} is in {}', [make_atom_model('Batteries'), make_atom_model('kitchen'), ]),make_structured_model('{} is in {}', [make_atom_model('Soap'), make_atom_model('bathroom'), ]),make_structured_model('{} is in {}', [make_atom_model('TV Remote'), make_atom_model('living room'), ]),    ] 
  },
 };
 const decks = {
+    'Self-examination' : {
+        early_actions: [
+        ],
+        choices: [
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Examine yourself'));
+                description.unify_with(make_atom_model('You feel prtty bad. You are so weak that if it wasn\'t for your splitting headache you would go straight to sleep.'));
+                cont_0();
+            },
+
+        ],
+        late_actions: [
+        ],
+    },
     'Computer' : {
         early_actions: [
         ],
@@ -31,6 +47,29 @@ const decks = {
     },
     'default' : {
         early_actions: [
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Begin examination'));
+                description.unify_with(make_atom_model('What is happening with you&quest;'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+            options.once = true;
+                DB.match(cont_0,
+                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Begin examination'), ])]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                const var_Location  = make_empty_variable('?Location' + (index == 1 ? '' : index));
+                name.unify_with(make_atom_model('Show stats'));
+                description.unify_with(make_structured_model('You are currently in {}.', [var_Location, ]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('Player is in {}', [var_Location, ]),
+                );
+            },
+
         ],
         choices: [
             (name, description, effects, next_deck, options, cont_0) => {
@@ -38,7 +77,7 @@ const decks = {
                 const var_A  = make_empty_variable('?A' + (index == 1 ? '' : index));
                 const var_B  = make_empty_variable('?B' + (index == 1 ? '' : index));
                 name.unify_with(make_structured_model('Walk from {} to {}', [var_A, var_B, ]));
-                description.unify_with(make_structured_model('You walk from {} to {}. You are now in {}.', [var_A, var_B, var_B, ]));
+                description.unify_with(make_structured_model('You walk from {} to {}.', [var_A, var_B, ]));
                 effects.unify_with(make_structured_term('', [
                 make_structured_model('Player is in {}', [var_B, ]),
                 make_structured_term('not', [make_structured_model('Player is in {}', [var_A, ])]),
@@ -100,16 +139,16 @@ const decks = {
                 name.unify_with(make_atom_model('Use computer'));
                 next_deck.unify_with(make_atom_model('Computer'));
                 DB.match(cont_0,
-                    make_structured_model('Player is in {}', [make_atom_model('Computer room'), ]),
+                    make_structured_model('Player is in {}', [make_atom_model('bedroom'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Watch TV(1)'));
+                name.unify_with(make_atom_model('Watch TV'));
                 description.unify_with(make_atom_model('You watch some TV, but nothing very interesting is on.'));
                 DB.match(cont_0,
-                    make_structured_model('Player is in {}', [make_atom_model('Living room'), ]),
+                    make_structured_model('Player is in {}', [make_atom_model('living room'), ]),
                     make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
                     make_atom_model('Remote has batteries'),
                 );
@@ -117,20 +156,20 @@ const decks = {
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Watch TV(2)'));
+                name.unify_with(make_atom_model('Watch TV.'));
                 description.unify_with(make_atom_model('You can\'t turn on the TV, becuase you misplaced the remote somewhere.'));
                 DB.match(cont_0,
-                    make_structured_model('Player is in {}', [make_atom_model('Living room'), ]),
+                    make_structured_model('Player is in {}', [make_atom_model('living room'), ]),
                     make_structured_term('not', [make_structured_model('Player has {}', [make_atom_model('TV Remote'), ])]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Watch TV(3)'));
+                name.unify_with(make_atom_model('Watch TV..'));
                 description.unify_with(make_atom_model('You try to turn on the TV, but to no avail. You realize it does not have batteries! You took them out when you were babysitting your nephiew last week. His dumb cartoons were giving you a headache.'));
                 DB.match(cont_0,
-                    make_structured_model('Player is in {}', [make_atom_model('Living room'), ]),
+                    make_structured_model('Player is in {}', [make_atom_model('living room'), ]),
                     make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
                     make_structured_term('not', [make_atom_model('Remote has batteries')]),
                 );
@@ -162,7 +201,7 @@ const predicates = {
         trail.new_choice_point();
 
         {
-            const model = make_atom_model('Kitchen');
+            const model = make_atom_model('kitchen');
             const model_name = model.pprint();
             if (head_0.unify_with(model)){
                 dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
@@ -176,7 +215,7 @@ const predicates = {
         dc.add_new_step('backup restored');
 
         {
-            const model = make_atom_model('Living room');
+            const model = make_atom_model('living room');
             const model_name = model.pprint();
             if (head_0.unify_with(model)){
                 dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
@@ -190,7 +229,7 @@ const predicates = {
         dc.add_new_step('backup restored');
 
         {
-            const model = make_atom_model('Bathroom');
+            const model = make_atom_model('bathroom');
             const model_name = model.pprint();
             if (head_0.unify_with(model)){
                 dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
@@ -204,7 +243,7 @@ const predicates = {
         dc.add_new_step('backup restored');
 
         {
-            const model = make_atom_model('Computer room');
+            const model = make_atom_model('bedroom');
             const model_name = model.pprint();
             if (head_0.unify_with(model)){
                 dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
@@ -345,7 +384,7 @@ const predicates = {
 
         const cont_1 = () => {
             {
-                const model = make_atom_model('Living room');
+                const model = make_atom_model('living room');
                 const model_name = model.pprint();
                 if (head_1.unify_with(model)){
                     dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
@@ -358,7 +397,7 @@ const predicates = {
         };
         const cont_2 = () => {
             {
-                const model = make_atom_model('Bathroom');
+                const model = make_atom_model('bathroom');
                 const model_name = model.pprint();
                 if (head_1.unify_with(model)){
                     dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
@@ -371,7 +410,7 @@ const predicates = {
         };
         const cont_3 = () => {
             {
-                const model = make_atom_model('Computer room');
+                const model = make_atom_model('bedroom');
                 const model_name = model.pprint();
                 if (head_1.unify_with(model)){
                     dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
@@ -385,7 +424,7 @@ const predicates = {
         trail.new_choice_point();
 
         {
-            const model = make_atom_model('Kitchen');
+            const model = make_atom_model('kitchen');
             const model_name = model.pprint();
             if (head_0.unify_with(model)){
                 dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
@@ -399,7 +438,7 @@ const predicates = {
         dc.add_new_step('backup restored');
 
         {
-            const model = make_atom_model('Living room');
+            const model = make_atom_model('living room');
             const model_name = model.pprint();
             if (head_0.unify_with(model)){
                 dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
@@ -413,7 +452,7 @@ const predicates = {
         dc.add_new_step('backup restored');
 
         {
-            const model = make_atom_model('Living room');
+            const model = make_atom_model('living room');
             const model_name = model.pprint();
             if (head_0.unify_with(model)){
                 dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);

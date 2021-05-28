@@ -232,17 +232,23 @@ const STATES = {
 };
 function make_choice(n){
     
-    let current_element = available_choices[n];
-    apply_element(current_element);
-    let state;
-    if (current_element.next_deck === null) {
-        state = STATES.LATE;
-    } else {
-        state = STATES.PUSH;
-    }
+    let state = STATES.EARLY;
+    let current_element;
     let used_actions = [];
+    //-1 n means no choice at all, just prepare actions
+    if (n >= 0) {
+        current_element = available_choices[n];
+        apply_element(current_element);
+        
+        if (current_element.next_deck === null) {
+            state = STATES.LATE;
+        } else {
+            state = STATES.PUSH;
+        }
+        
     
-    current_deck.pre_choice = false;
+        current_deck.pre_choice = false;
+    }
     while(true){
         
         if (state == STATES.LATE) {
@@ -363,6 +369,7 @@ function reset_globals(){
 } 
 
 //this is set to the debug controller by the main page when this file is loaded
+//Shouldn't it go to the debug file then?
 let dc = null;
 
 function produce_nodes(){

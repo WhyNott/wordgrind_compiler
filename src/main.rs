@@ -21,15 +21,16 @@ use crate::js_emission::{write_document};
 
 use std::env;
 
-fn main() {
+extern crate notify;
 
-    let args: Vec<String> = env::args().collect();
+use notify::{RecommendedWatcher, Watcher, RecursiveMode, DebouncedEvent};
+use std::sync::mpsc::channel;
+use std::time::Duration;
 
-    let input_file = if args.len() > 1 { &args[1] } else {"main.yaml"};
-    let output_file = if args.len() > 2 { &args[2] } else {"compiled.js"};
+fn compile(input_file: &str, output_file: &str,) {
     
     let data = fs::read_to_string(input_file).expect("Unable to read file");
-
+    
     let mains = YamlLoader::load_from_str(&data).unwrap();
     let main = &mains[0];
 
@@ -42,5 +43,40 @@ fn main() {
 
     write_document(&mut writer, &processed);
     writer.flush().unwrap();
+    
+    println!("Compiled successfully from {} to {}!", input_file, output_file);
+    
+
+}
+
+
+fn main() {
+
+    let args: Vec<String> = env::args().collect();
+
+    let input_file = if args.len() > 1 { &args[1] } else {"main.yaml"};
+    let output_file = if args.len() > 2 { &args[2] } else {"compiled.js"};
+
+    // Create a channel to receive the events.
+    let (tx, rx) = channel();
+
+    // Automatically select the best implementation for your platform.
+    // You can also access each implementation directly e.g. INotifyWatcher.
+    let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_secs(2)).expect("watcher init bad");
+
+    // Add a path to be watched. All files and directories at that path and
+    // below will be monitored for changes.
+    watcher.watch(input_file, RecursiveMode::Recursive);
+    compile(input_file, output_file);
+    loop {
+        match rx.recv() {
+            Ok(DebouncedEvent::Write(_)) => {
+                compile(input_file, output_file);
+            },
+            Ok(event) => println!("{:?}", event),
+            Err(e) => println!("watch error: {:?}", e),
+        }
+    }
+    
 }
 
