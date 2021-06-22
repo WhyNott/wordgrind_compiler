@@ -69,11 +69,16 @@ fn element_parse(key:&Yaml, hash_data:&Yaml, tag: ElementType) -> Element {
     let mut v_map : HashMap<String, Variable> = HashMap::new();
     let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
 
-    let name: Sentence = if let Term::Sentence(s) = term_parse(
+    let name: Sentence = match term_parse(
         key.as_str().expect(emsg), &mut v_map, context) {
-        s
-    } else {
-        panic!("variable shouldnt be here");
+
+        Term::Sentence(s) => s,
+    
+        Term::Variable(v) => Sentence {
+            name: new_atom("{}"),
+            elements: vec![Term::Variable(v)],
+            context
+        }
     };
 
     hash_data["priority"].is_badvalue();
