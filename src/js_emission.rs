@@ -254,7 +254,8 @@ struct JSSentence<'a>(&'a parser::Sentence);
 impl<'a> fmt::Display for JSSentence<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = self.0;
-        let proper_escaped_name = str::replace(&s.name.get_string(), "'", "\\'");
+        let proper_escaped_name = str::replace(&s.name.get_string(), "'", "\\'")
+            .replace("\n", "<br>");
         
         if s.elements.is_empty(){
             write!(f, "make_atom_model('{}')", proper_escaped_name)

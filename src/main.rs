@@ -27,27 +27,7 @@ use notify::{RecommendedWatcher, Watcher, RecursiveMode, DebouncedEvent};
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
-fn compile(input_file: &str, output_file: &str,) {
-    
-    let data = fs::read_to_string(input_file).expect("Unable to read file");
-    
-    let mains = YamlLoader::load_from_str(&data).unwrap();
-    let main = &mains[0];
 
-    let parsed = document_parse(main);
-
-    let processed = process_document(parsed);
-    
-    let write_file = File::create(output_file).unwrap();
-    let mut writer = BufWriter::new(&write_file);
-
-    write_document(&mut writer, &processed);
-    writer.flush().unwrap();
-    
-    println!("Compiled successfully from {} to {}!", input_file, output_file);
-    
-
-}
 
 
 fn main() {
@@ -64,6 +44,26 @@ fn main() {
     // You can also access each implementation directly e.g. INotifyWatcher.
     let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_secs(2)).expect("watcher init bad");
 
+    fn compile(input_file: &str, output_file: &str,) {
+        
+        let data = fs::read_to_string(input_file).expect("Unable to read file");
+    
+        let mains = YamlLoader::load_from_str(&data).unwrap();
+        let main = &mains[0];
+        
+        let parsed = document_parse(main);
+
+        let processed = process_document(parsed);
+        
+        let write_file = File::create(output_file).unwrap();
+        let mut writer = BufWriter::new(&write_file);
+        
+        write_document(&mut writer, &processed);
+        writer.flush().unwrap();
+    
+        println!("Compiled successfully from {} to {}!", input_file, output_file);
+    }
+    
     // Add a path to be watched. All files and directories at that path and
     // below will be monitored for changes.
     watcher.watch(input_file, RecursiveMode::Recursive);

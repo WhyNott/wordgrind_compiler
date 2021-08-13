@@ -52,8 +52,9 @@ pub fn document_parse(yaml_doc:&Yaml) -> Document {
                 predicates = join_clauses_of_same_predicate(&separarate_predicates);
             },
             s => {
-                let deck: Deck = deck_parse(value);
-                decks.insert(new_atom(s), deck);
+                let deck_name = new_atom(s);
+                let deck: Deck = deck_parse(deck_name, value);
+                decks.insert(deck_name, deck);
             }
             
         }
@@ -204,8 +205,89 @@ fn logic_verb_parse(data: &Yaml, v_map: &mut HashMap<String, Variable>) -> Logic
     }
 }
 
+fn weave_parse(deck_name: Atom, yaml_data: &Yaml) -> Vec<WeaveItem> {
+    fn create_element(deck_name: Atom, name: &str, tag: ElementType) -> Element {
+        let mut v_map : HashMap<String, Variable> = HashMap::new();
+        let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
 
-fn deck_parse(yaml_data:&Yaml) -> Deck {
+        let options = if tag == ElementType::Choice {
+            ElementOptions {once: false, hide_name: false}
+        } else {
+            ElementOptions {once: true, hide_name: true}
+        };
+        
+        Element {
+            tag,
+            name: match term_parse(name, &mut v_map, context) {
+                Term::Sentence(s) => s,
+                _ => panic!("variable shouldnt be here"),
+            },
+            priority: 0,
+            preconds: vec![],
+            effects: vec![],
+            description: if tag == ElementType::Choice {
+                None
+            }
+            else {
+                Some(term_parse(name, &mut v_map, context))
+            },
+            logic: None,
+            next_deck: Some(Term::Sentence(Sentence{name: deck_name, elements: vec![], context})),
+            options: options
+        }
+    }
+    
+    fn weave_parse_choice(deck_name: Atom, yaml_data: &Yaml, tape: &mut Vec<WeaveItem>) {
+        let emsg = "Incorrect document format";
+        if let Yaml::Array(data) = yaml_data {
+            for item in data {
+                let item_name;
+                let item_contents;
+                if let Yaml::Hash(h) = item {
+                    let (hash_item_name, hash_item_contents) = h.iter().next().expect(emsg);
+                    item_name = hash_item_name.as_str().expect(emsg);
+                    item_contents = Some(hash_item_contents);
+                } else {
+                    item_name = item.as_str().expect(emsg);
+                    item_contents = None;
+                }
+                
+                let gather_name = item_name.to_string();
+                let mut choice_name = item_name.chars();
+                // is choice
+                if choice_name.next().unwrap() == '>' {
+                    if let Some(nested_data) = item_contents{
+                        let index = tape.len();
+                        //will be overwritten
+                        let fake_element = create_element(deck_name, "test", ElementType::Choice);
+                        let name : String = choice_name.collect();
+                        let weave_element = create_element(deck_name, &name, ElementType::Choice);
+                        tape.push(WeaveItem::Choice(fake_element, 0));
+                        weave_parse_choice(deck_name, nested_data, tape);
+                        tape[index] = WeaveItem::Choice(weave_element, tape.len());
+                    } else {
+                        let name : String = choice_name.collect();
+                        let weave_element = create_element(deck_name, &name, ElementType::Choice);
+                        tape.push(WeaveItem::Choice(weave_element, tape.len()+1));
+                    }
+                } else {
+                    let weave_element = create_element(deck_name, &gather_name, ElementType::EarlyAction);
+                    tape.push(WeaveItem::GatherPoint(weave_element));
+                    //discard dict info for now
+                }
+            }
+            
+        } else {
+            panic!(emsg)
+        }   
+    }
+    let emsg = "Incorrect document format";
+    let mut items: Vec<WeaveItem> = Vec::new();
+    weave_parse_choice(deck_name, yaml_data, &mut items);
+    items
+}
+
+fn deck_parse(deck_name: Atom, yaml_data:&Yaml) -> Deck {
     let mut early_actions: Vec<Element> = Vec::new();
     if let Yaml::Hash(h) = &yaml_data["Early actions"] {
         for (key, value) in h {
@@ -227,7 +309,15 @@ fn deck_parse(yaml_data:&Yaml) -> Deck {
         }
     }
 
-    Deck {early_actions, choices, late_actions}
+    let weave: Vec<WeaveItem>; 
+    if yaml_data["Weave"].is_badvalue() {
+        weave = Vec::new(); 
+    } else {
+        weave = weave_parse(deck_name, &yaml_data["Weave"]);
+    }
+    
+
+    Deck {early_actions, choices, late_actions, weave}
     
 }
 

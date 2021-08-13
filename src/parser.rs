@@ -235,7 +235,7 @@ pub struct Parameters {
     pub logic: Option<LogicVerb>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElementType {
     Action,
     EarlyAction,
@@ -292,6 +292,7 @@ impl fmt::Display for InitialState {
 
 #[derive(Debug, Clone)]
 pub struct Deck {
+    pub weave: Vec<WeaveItem>,
     pub early_actions: Vec<Element>,
     pub choices: Vec<Element>,
     pub late_actions: Vec<Element>,
@@ -300,8 +301,8 @@ pub struct Deck {
 
 #[derive(Debug, Clone)]
 pub enum WeaveItem {
-    GatherPoint(Sentence),
-    Choice(Sentence, Vec<WeaveItem>)
+    GatherPoint(Element),
+    Choice(Element, usize),
 }
 
 #[derive(Debug, Clone)]

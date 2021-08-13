@@ -10,23 +10,31 @@ const predicates = {
         if (!A.bound()) {
             console.assert(B.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            A.unify_with(make_atom(parseInt(C.content().value) - parseInt(B.content().value)));
+            A.unify_with(make_atom(
+                (parseInt(C.content().value) - parseInt(B.content().value)).toString()
+            ));
             cont();
         } else if (!B.bound()) {
             console.assert(A.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            B.unify_with(make_atom(parseInt(C.content().value) - parseInt(A.content().value)));
+            B.unify_with(make_atom(
+                (parseInt(C.content().value) - parseInt(A.content().value)).toString()
+            ));
             cont();
         } else if (!C.bound()) {
             console.assert(B.dereferenced().is_atom());
             console.assert(A.dereferenced().is_atom());
-            C.unify_with(make_atom(parseInt(A.content().value) + parseInt(B.content().value)));
+            C.unify_with(make_atom(
+                (parseInt(A.content().value) + parseInt(B.content().value)).toString()
+            ));
             cont();
         } else {
             console.assert(A.dereferenced().is_atom());
             console.assert(B.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            if (C.unify_with(make_atom(parseInt(A.content().value) + parseInt(B.content().value))))
+            if (C.unify_with(make_atom(
+                (parseInt(A.content().value) + parseInt(B.content().value)).toString()
+            )))
                 cont();
         }
         

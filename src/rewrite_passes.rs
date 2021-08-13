@@ -305,10 +305,10 @@ pub mod emission {
     use crate::parser;
     use crate::rewrite_passes::explicit_uni;
     use crate::rewrite_passes::variable_inits;
-    use crate::tl_database::{Atom, Context, Variable};
+    use crate::tl_database::{Atom, Context, Variable, new_atom};
     use std::collections::{BTreeSet, BTreeMap};
     use itertools::Itertools;
-
+    
     #[derive(Debug, Clone)]
     pub struct Deck {
         pub early_actions: Vec<Element>,
@@ -323,18 +323,18 @@ pub mod emission {
         pub predicates: BTreeMap<Atom, Procedure>,
         pub special_facts: Vec<(Atom, parser::SpecialFactType)>
     }
-
+    
     pub fn process_document(input: parser::Document) -> Document {
         let initial_conditions = input.initial_conditions;  
         let mut decks: BTreeMap<Atom, Deck> = BTreeMap::new();                       
         let mut predicates: BTreeMap<Atom, Procedure> = BTreeMap::new();                        
         let special_facts: Vec<(Atom, parser::SpecialFactType)> = input.special_facts;
-
+        
         for (name, deck) in input.decks {
             let mut early_actions: Vec<Element> = Vec::new();
             let mut choices: Vec<Element> = Vec::new();      
             let mut late_actions: Vec<Element> = Vec::new();
-
+            
             for element in deck.early_actions {
                 early_actions.push(process_element(element));
             }
@@ -344,9 +344,52 @@ pub mod emission {
             for element in deck.late_actions {
                 late_actions.push(process_element(element));
             } 
+
+            if !deck.weave.is_empty(){
+                let mut edges: Vec<(parser::Element, usize, usize)> = Vec::new();
+                flatten_weave(deck.weave, &mut vec![], &mut edges);
+                //add initial early action that sets the initial value 
+                for (e, v, r) in edges {
+                   // println!("{}, {:?}, {:?}", e.name, v, r );
+                    //for each element, add precondition for v and effect of r
+                    let mut element = e.clone();
+                    element.preconds.push((parser::Term::Sentence(parser::Sentence{
+                        name: new_atom("weave item {}"),
+                        elements: vec![parser::Term::Sentence(parser::Sentence{
+                            name: new_atom(&v.to_string()),
+                            elements: vec![],
+                            context: e.name.context.clone()
+                        })],
+                        context: e.name.context.clone()
+                    }), true));
+                    element.effects.push((parser::Term::Sentence(parser::Sentence{
+                        name: new_atom("weave item {}"),
+                        elements: vec![parser::Term::Sentence(parser::Sentence{
+                            name: new_atom(&r.to_string()),
+                            elements: vec![],
+                            context: e.name.context.clone()
+                        })],
+                        context: e.name.context.clone()
+                    }), true));
+
+                    //then append the element to appropriate deck section
+                    match &e.tag {
+                        parser::ElementType::Choice => {
+                            choices.push(process_element(element));
+                        },
+                        parser::ElementType::EarlyAction => {
+                            early_actions.push(process_element(element));
+                        },
+                        _ => panic!("dsfsdfsadfsdf")
+                    }
+                }
+               
+            }
             
             let new_deck = Deck {early_actions, choices, late_actions};
             decks.insert(name, new_deck);
+
+            
         }
         
         for ((name, _), pred) in input.predicates {
@@ -355,13 +398,90 @@ pub mod emission {
             let emission = process(var_inits);
             predicates.insert(name, emission);
         }
+
         
         
         Document {initial_conditions, decks, predicates, special_facts} 
     }
+    use std::cell::RefCell;
+    use parser::{WeaveItem};
+    use std::rc::Rc;
+
     
-     #[derive(Debug, Clone)]
-    pub struct Element {
+    fn flatten_weave(input: Vec<WeaveItem>, nodes: &mut Vec<usize>, edges: &mut Vec<(parser::Element, usize, usize)>) {
+        
+        fn process_contents(input: &Vec<WeaveItem>, begin: usize, end: usize, nodes: &mut Vec<usize>,
+                            edges: &mut Vec<(parser::Element, usize, usize)>, first_node: usize, end_node: usize) {
+            let mut last_node = first_node;
+            let mut past_choices : Vec<(parser::Element, usize, usize)> = Vec::new();
+            let mut i = begin;
+            while i < end {
+                match &input[i] {
+                    WeaveItem::GatherPoint(el) => {
+                        if !past_choices.is_empty() {
+                            let new_node = last_node + 1;
+                            nodes.push(new_node);
+                            for (choice, start, end) in past_choices.drain(..) {
+                                if start == end {
+                                    edges.push((choice, last_node, new_node));
+                                } else {
+                                    
+                                    let middle_node = start + input.len() + 1;
+                                    nodes.push(middle_node);
+                                    edges.push((choice, last_node, middle_node));
+                                    process_contents(input, start, end, nodes, edges, middle_node, new_node);
+                                }
+                            }
+                            last_node = new_node;
+                            
+                        }
+                        let new_node;
+                        if (i+1) == end {
+                            new_node = end_node;
+                        } else {
+                            new_node = last_node + 1;
+                            nodes.push(new_node);
+                        }
+                        edges.push((el.clone(), last_node, new_node));
+                        last_node = new_node;
+                    },
+                    WeaveItem::Choice(el, end) => {
+                        past_choices.push((el.clone(), i+1, *end));
+                        i = end-1;
+                    } 
+                }
+                i += 1;
+            }
+
+            if !past_choices.is_empty() {
+                let new_node = end_node;
+                for (choice, start, end) in past_choices.drain(..) {
+                    if start == end {
+                        edges.push((choice, last_node, new_node));
+                    } else {
+                        
+                        let middle_node = start + input.len() + 1;
+                        nodes.push(middle_node);
+                        edges.push((choice, last_node, middle_node));
+                        process_contents(input, start, end, nodes, edges, middle_node, new_node);
+                    }
+                }
+                last_node = new_node;
+                
+            }
+            
+        }
+
+        let input_len = input.len();
+        nodes.push(0);
+        nodes.push(input_len);
+        process_contents(&input, 0, input_len, nodes, edges, 0, input_len);
+        
+    }
+
+    
+#[derive(Debug, Clone)]
+pub struct Element {
         pub tag: parser::ElementType,//
         pub name: parser::Sentence,//
         pub variables: Vec<Variable>,//
@@ -540,7 +660,7 @@ pub mod emission {
                 let mut lvs_iterator_reverse = lvs_iterator.rev();
 
                 match lvs_iterator_reverse.next() {
-                    None => {}
+                    None => {},
                     Some(lv) => {
                         let result = process_body(lv, &mut conts, true);
                         conts.push(result);
