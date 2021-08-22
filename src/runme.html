@@ -29,8 +29,9 @@
           const description = document.getElementById("description");
           if (name)
               description.insertAdjacentHTML('beforeend', "<p><b>"+name.pprint(bracketed = false)+"</p></b>");
- 
-          description.insertAdjacentHTML('beforeend', desc ? desc : "");
+
+          if (desc)
+              description.insertAdjacentHTML('beforeend', "<p>"+desc+"</p>");
           description.scrollTop = description.scrollHeight;
       }
       

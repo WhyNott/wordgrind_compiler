@@ -347,28 +347,49 @@ pub mod emission {
 
             if !deck.weave.is_empty(){
                 let mut edges: Vec<(parser::Element, usize, usize)> = Vec::new();
-                flatten_weave(deck.weave, &mut vec![], &mut edges);
-                //add initial early action that sets the initial value 
+                let mut nodes: Vec<usize> = Vec::new();
+                flatten_weave(deck.weave, &mut nodes, &mut edges);
+                //TODO: add initial early action that sets the initial value
+
+                let last_node = nodes[0];
                 for (e, v, r) in edges {
-                   // println!("{}, {:?}, {:?}", e.name, v, r );
+                    //Note: we can replace the very last node with a text saying "completed" 
+                    
                     //for each element, add precondition for v and effect of r
                     let mut element = e.clone();
                     element.preconds.push((parser::Term::Sentence(parser::Sentence{
-                        name: new_atom("weave item {}"),
-                        elements: vec![parser::Term::Sentence(parser::Sentence{
-                            name: new_atom(&v.to_string()),
-                            elements: vec![],
-                            context: e.name.context.clone()
-                        })],
+                        name: new_atom("weave item {} for {}"),
+                        elements: vec![
+                            parser::Term::Sentence(parser::Sentence{
+                                name: new_atom(&v.to_string()),
+                                elements: vec![],
+                                context: e.name.context.clone()
+                            }),
+                            parser::Term::Sentence(parser::Sentence{
+                                name: name,
+                                elements: vec![],
+                                context: e.name.context.clone()
+                            })
+
+                        ],
                         context: e.name.context.clone()
                     }), true));
+
+                    let next_node = if r != last_node {r.to_string()} else {"completed".to_string()};
                     element.effects.push((parser::Term::Sentence(parser::Sentence{
-                        name: new_atom("weave item {}"),
-                        elements: vec![parser::Term::Sentence(parser::Sentence{
-                            name: new_atom(&r.to_string()),
-                            elements: vec![],
-                            context: e.name.context.clone()
-                        })],
+                        name: new_atom("weave item {} for {}"),
+                        elements: vec![
+                            parser::Term::Sentence(parser::Sentence{
+                                name: new_atom(&next_node),
+                                elements: vec![],
+                                context: e.name.context.clone()
+                            }),
+                            parser::Term::Sentence(parser::Sentence{
+                                name: name,
+                                elements: vec![],
+                                context: e.name.context.clone()
+                            })
+                        ],
                         context: e.name.context.clone()
                     }), true));
 
@@ -473,8 +494,8 @@ pub mod emission {
         }
 
         let input_len = input.len();
-        nodes.push(0);
         nodes.push(input_len);
+        nodes.push(0);
         process_contents(&input, 0, input_len, nodes, edges, 0, input_len);
         
     }

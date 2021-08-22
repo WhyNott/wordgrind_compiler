@@ -1,3 +1,5 @@
+# Actually, could I do a really stupid and ugly hack where I just replace charaters to alter default behaviour?
+
 Predicates:
   # facts
   - <kitchen> is a room
@@ -17,13 +19,15 @@ Predicates:
       or:
         - ?A is connected to ?B
         - ?B is connected to ?A
+
+Unique facts:
+  - weave item ?_ for ?_
 #note to self:
 # If I want multiple choices with the same name (and I do want that sometimes) I will need to represent them as a list rather than an object. It makes more sense that way, too.
 #Actually, this causes a lot of problems. I will need to rethink this approach.
 #Can I have an early action happen before the game starts.
 default:
   Early actions:
-    #Note: this still doesn't show either the name or the displays. 
     Begin examination:
       available when:
         - not: selected <Begin examination>
@@ -83,34 +87,41 @@ default:
         - ?Item is in ?Place
         - removes: <Player has ?Item>
 
+    Take Paracetamol:
+      available when:
+        - Player is in <kitchen>
+        - not: selected <Take Paracetamol>
+      displays:
+        You swallow the pill with a glass of water.
+
     Use computer:
       available when:
         - Player is in <bedroom>
       next deck:
         Computer
 
-    "Watch TV":
+    Watch TV:
       available when:
         - Player is in <living room>
         - Player has <TV Remote>
         - Remote has batteries
       displays:
-        You watch some TV, but nothing very interesting is on.
+        You watch some TV, but nothing very interesting is on. Mostly just more COVID cases. 
 
-    "Watch TV.":
+    Watch TV.:
       available when:
         - Player is in <living room>
         - not: Player has <TV Remote>
       displays:
         You can't turn on the TV, becuase you misplaced the remote somewhere.
 
-    "Watch TV..":
+    Watch TV..:
       available when:
         - Player is in <living room>
         - Player has <TV Remote>
         - not: Remote has batteries
       displays:
-        You try to turn on the TV, but to no avail. You realize it does not have batteries! You took them out when you were babysitting your nephiew last week. His dumb cartoons were giving you a headache. 
+        You try to turn on the TV, but to no avail. You realize the remote does not have batteries! You took them out when you were babysitting your nephiew last week. His dumb cartoons were giving you a headache. 
 
 
     Insert batteries into remote:
@@ -131,10 +142,31 @@ Computer:
         This almost goes well, but you're bad at counting so you loose.
 
 Self-examination:
-  Choices:
-    Examine yourself:
+  Weave:
+    - '>Examine yourself'
+    - You feel pretty bad. You are so weak that if it wasn't for your splitting headache you would go straight to sleep.
+    - '>Try going to sleep anyway':
+        - You toss an turn and lay down for a few minutes, but it's pointless. The heat of your body, and the shard of pain in your skull, are unbearable. Besides, its already past dawn, and you forgot to roll down your blinds.
+        # ᐳ ＂
+        - '> Cover your windows and get back to sleep':
+            - Nice try, but by the time you had made it out of bed and halfway across your room, you realize it doesn't matter anymore. You have gotten up.
+        - '> No, seriously, get up to find painkillers'
+         
+    - '> Get up to find painkillers'
+    - ＂Ugh, not again...＂ you think to yourself.
+    - You've already taken two pills for a toothache yesterday, and you are pretty sure there is some kind of a limit of Paracetamol usage it is unwise to cross. You like, read it in a magazine once. 
+    - Either way, there should be some Ibuprofen in your kitchen.
+  Early actions:
+    End intro:
       displays:
-        You feel prtty bad. You are so weak that if it wasn't for your splitting headache you would go straight to sleep. 
+        ' '
+      available when:
+        - weave item <completed> for <Self-examination>
+      next deck:
+          default
+      options:
+        once: true
+        hide name: true
         
           
 Initial state:
@@ -144,5 +176,6 @@ Initial state:
     - <Batteries> is in <kitchen>
     - <Soap> is in <bathroom>
     - <TV Remote> is in <living room>
+    - weave item <0> for <Self-examination>
   displays:
-    You wake up in a cold sweat. You had horrible nightmares all night, and now you have a horrible headache.
+    You wake up in a cold sweat. You had nightmares all night, and now you have a horrible headache.

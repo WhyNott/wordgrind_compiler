@@ -47,7 +47,7 @@ fn main() {
     fn compile(input_file: &str, output_file: &str,) {
         
         let data = fs::read_to_string(input_file).expect("Unable to read file");
-    
+        let data = data.replace("\"", "＂");
         let mains = YamlLoader::load_from_str(&data).unwrap();
         let main = &mains[0];
         

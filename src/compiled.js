@@ -1,5 +1,9 @@
-const init_desc = 'You wake up in a cold sweat. You had horrible nightmares all night, and now you have a horrible headache.';
+const init_desc = 'You wake up in a cold sweat. You had nightmares all night, and now you have a horrible headache.';
 DB.store = {
+    'weave item {} for {}' : {
+        unique: true,
+        data: [make_structured_model('weave item {} for {}', [make_atom_model('0'), make_atom_model('Self-examination'), ]),    ] 
+ },
     'Player is in {}' : {
         data: [make_structured_model('Player is in {}', [make_atom_model('bedroom'), ]),    ] 
  },
@@ -8,49 +12,12 @@ DB.store = {
  },
 };
 const decks = {
-    'Self-examination' : {
-        early_actions: [
-        ],
-        choices: [
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Examine yourself'));
-                description.unify_with(make_atom_model('You feel prtty bad. You are so weak that if it wasn\'t for your splitting headache you would go straight to sleep.'));
-                cont_0();
-            },
-
-        ],
-        late_actions: [
-        ],
-    },
-    'Computer' : {
-        early_actions: [
-        ],
-        choices: [
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Check your email'));
-                description.unify_with(make_atom_model('No new messages!'));
-                cont_0();
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Play minesweeper'));
-                description.unify_with(make_atom_model('This almost goes well, but you\'re bad at counting so you loose.'));
-                cont_0();
-            },
-
-        ],
-        late_actions: [
-        ],
-    },
     'default' : {
         early_actions: [
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
                 name.unify_with(make_atom_model('Begin examination'));
-                description.unify_with(make_atom_model('What is happening with you&quest;'));
+                description.unify_with(make_atom_model('＂What is happening with you&quest;＂'));
                 next_deck.unify_with(make_atom_model('Self-examination'));
             options.once = true;
                 DB.match(cont_0,
@@ -136,6 +103,16 @@ const decks = {
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
+                name.unify_with(make_atom_model('Take Paracetamol'));
+                description.unify_with(make_atom_model('You swallow the pill with a glass of water.'));
+                DB.match(cont_0,
+                    make_structured_model('Player is in {}', [make_atom_model('kitchen'), ]),
+                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Take Paracetamol'), ])]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
                 name.unify_with(make_atom_model('Use computer'));
                 next_deck.unify_with(make_atom_model('Computer'));
                 DB.match(cont_0,
@@ -146,7 +123,7 @@ const decks = {
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
                 name.unify_with(make_atom_model('Watch TV'));
-                description.unify_with(make_atom_model('You watch some TV, but nothing very interesting is on.'));
+                description.unify_with(make_atom_model('You watch some TV, but nothing very interesting is on. Mostly just more COVID cases.'));
                 DB.match(cont_0,
                     make_structured_model('Player is in {}', [make_atom_model('living room'), ]),
                     make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
@@ -167,7 +144,7 @@ const decks = {
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
                 name.unify_with(make_atom_model('Watch TV..'));
-                description.unify_with(make_atom_model('You try to turn on the TV, but to no avail. You realize it does not have batteries! You took them out when you were babysitting your nephiew last week. His dumb cartoons were giving you a headache.'));
+                description.unify_with(make_atom_model('You try to turn on the TV, but to no avail. You realize the remote does not have batteries! You took them out when you were babysitting your nephiew last week. His dumb cartoons were giving you a headache.'));
                 DB.match(cont_0,
                     make_structured_model('Player is in {}', [make_atom_model('living room'), ]),
                     make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
@@ -186,6 +163,198 @@ const decks = {
                     make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
                     make_structured_model('Player has {}', [make_atom_model('Batteries'), ]),
                 );
+            },
+
+        ],
+        late_actions: [
+        ],
+    },
+    'Self-examination' : {
+        early_actions: [
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('End intro'));
+                description.unify_with(make_atom_model(' '));
+                next_deck.unify_with(make_atom_model('default'));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('completed'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You feel pretty bad. You are so weak that if it wasn\'t for your splitting headache you would go straight to sleep.'));
+                description.unify_with(make_atom_model('You feel pretty bad. You are so weak that if it wasn\'t for your splitting headache you would go straight to sleep.'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Self-examination'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You toss an turn and lay down for a few minutes, but it\'s pointless. The heat of your body, and the shard of pain in your skull, are unbearable. Besides, its already past dawn, and you forgot to roll down your blinds.'));
+                description.unify_with(make_atom_model('You toss an turn and lay down for a few minutes, but it\'s pointless. The heat of your body, and the shard of pain in your skull, are unbearable. Besides, its already past dawn, and you forgot to roll down your blinds.'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('16'), make_atom_model('Self-examination'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('15'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Nice try, but by the time you had made it out of bed and halfway across your room, you realize it doesn\'t matter anymore. You have gotten up.'));
+                description.unify_with(make_atom_model('Nice try, but by the time you had made it out of bed and halfway across your room, you realize it doesn\'t matter anymore. You have gotten up.'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Self-examination'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('17'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('＂Ugh, not again...＂ you think to yourself.'));
+                description.unify_with(make_atom_model('＂Ugh, not again...＂ you think to yourself.'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Self-examination'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You\'ve already taken two pills for a toothache yesterday, and you are pretty sure there is some kind of a limit of Paracetamol usage it is unwise to cross. You like, read it in a magazine once.'));
+                description.unify_with(make_atom_model('You\'ve already taken two pills for a toothache yesterday, and you are pretty sure there is some kind of a limit of Paracetamol usage it is unwise to cross. You like, read it in a magazine once.'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Self-examination'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Either way, there should be some Ibuprofen in your kitchen.'));
+                description.unify_with(make_atom_model('Either way, there should be some Ibuprofen in your kitchen.'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('completed'), make_atom_model('Self-examination'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+        ],
+        choices: [
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Examine yourself'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Self-examination'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('0'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Try going to sleep anyway'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('15'), make_atom_model('Self-examination'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model(' Cover your windows and get back to sleep'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('17'), make_atom_model('Self-examination'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('16'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model(' No, seriously, get up to find painkillers'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Self-examination'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('16'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model(' Get up to find painkillers'));
+                next_deck.unify_with(make_atom_model('Self-examination'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Self-examination'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Self-examination'), ]),
+                );
+            },
+
+        ],
+        late_actions: [
+        ],
+    },
+    'Computer' : {
+        early_actions: [
+        ],
+        choices: [
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Check your email'));
+                description.unify_with(make_atom_model('No new messages!'));
+                cont_0();
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Play minesweeper'));
+                description.unify_with(make_atom_model('This almost goes well, but you\'re bad at counting so you loose.'));
+                cont_0();
             },
 
         ],
@@ -500,23 +669,31 @@ const predicates = {
         if (!A.bound()) {
             console.assert(B.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            A.unify_with(make_atom(parseInt(C.content().value) - parseInt(B.content().value)));
+            A.unify_with(make_atom(
+                (parseInt(C.content().value) - parseInt(B.content().value)).toString()
+            ));
             cont();
         } else if (!B.bound()) {
             console.assert(A.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            B.unify_with(make_atom(parseInt(C.content().value) - parseInt(A.content().value)));
+            B.unify_with(make_atom(
+                (parseInt(C.content().value) - parseInt(A.content().value)).toString()
+            ));
             cont();
         } else if (!C.bound()) {
             console.assert(B.dereferenced().is_atom());
             console.assert(A.dereferenced().is_atom());
-            C.unify_with(make_atom(parseInt(A.content().value) + parseInt(B.content().value)));
+            C.unify_with(make_atom(
+                (parseInt(A.content().value) + parseInt(B.content().value)).toString()
+            ));
             cont();
         } else {
             console.assert(A.dereferenced().is_atom());
             console.assert(B.dereferenced().is_atom());
             console.assert(C.dereferenced().is_atom());
-            if (C.unify_with(make_atom(parseInt(A.content().value) + parseInt(B.content().value))))
+            if (C.unify_with(make_atom(
+                (parseInt(A.content().value) + parseInt(B.content().value)).toString()
+            )))
                 cont();
         }
         
