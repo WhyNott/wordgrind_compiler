@@ -399,7 +399,8 @@ pub fn term_parse(source: &str,  v_map: &mut HashMap<String, Variable>, context:
 
 }
 
-
+//This code will finally need to be fixed, but I'm not really sure how.
+//RIght now it crashes if ? is the last symbol, and also thinks every ? is a variable.
 
 #[cfg(test)]
 mod tests {

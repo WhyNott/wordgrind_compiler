@@ -1,39 +1,140 @@
-const init_desc = 'You wake up in a cold sweat. You had nightmares all night, and now you have a horrible headache.';
-DB.store = {
-    'weave item {} for {}' : {
-        unique: true,
-        data: [make_structured_model('weave item {} for {}', [make_atom_model('0'), make_atom_model('Self-examination'), ]),    ] 
- },
-    'Player is in {}' : {
-        data: [make_structured_model('Player is in {}', [make_atom_model('bedroom'), ]),    ] 
- },
-    '{} is in {}' : {
-        data: [make_structured_model('{} is in {}', [make_atom_model('Knife'), make_atom_model('kitchen'), ]),make_structured_model('{} is in {}', [make_atom_model('Batteries'), make_atom_model('kitchen'), ]),make_structured_model('{} is in {}', [make_atom_model('Soap'), make_atom_model('bathroom'), ]),make_structured_model('{} is in {}', [make_atom_model('TV Remote'), make_atom_model('living room'), ]),    ] 
- },
-};
+const init_desc = '';
+DB.store = { };
 const decks = {
     'default' : {
         early_actions: [
+        ],
+        choices: [
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Begin examination'));
-                description.unify_with(make_atom_model('＂What is happening with you&quest;＂'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model('Play intro'));
+                next_deck.unify_with(make_atom_model('Intro'));
+                cont_0();
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Use interactive kiosk'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                cont_0();
+            },
+
+        ],
+        late_actions: [
+        ],
+    },
+    'Intro' : {
+        early_actions: [
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('It had happened entirely by an accident. Julius and Andrea must have went to the other cart while you zoned out staring out the window, trying to see if you can already feel the difference. You couldn\'t, but then you noticed that the train had stopped. The name of the station seemed vaguely familiar. Wasn\'t that the station you were all supposed to change at&quest; You looked and they were gone. You really should have known better, but maybe it has started to work by then, because you really really should have realized that they would not have left you all by yourself in the train without saying anything, especially after you\'ve just taken 150 ug of LSD.'));
+                description.unify_with(make_atom_model('It had happened entirely by an accident. Julius and Andrea must have went to the other cart while you zoned out staring out the window, trying to see if you can already feel the difference. You couldn\'t, but then you noticed that the train had stopped. The name of the station seemed vaguely familiar. Wasn\'t that the station you were all supposed to change at&quest; You looked and they were gone. You really should have known better, but maybe it has started to work by then, because you really really should have realized that they would not have left you all by yourself in the train without saying anything, especially after you\'ve just taken 150 ug of LSD.'));
+                next_deck.unify_with(make_atom_model('Intro'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave for {} activated', [make_atom_model('Intro'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('0'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Intro'), ]),
+]));
             options.once = true;
+           options.hide_name = true;
                 DB.match(cont_0,
-                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Begin examination'), ])]),
+                    make_structured_term('not', [make_structured_model('weave for {} activated', [make_atom_model('Intro'), ])]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                const var_Location  = make_empty_variable('?Location' + (index == 1 ? '' : index));
-                name.unify_with(make_atom_model('Show stats'));
-                description.unify_with(make_structured_model('You are currently in {}.', [var_Location, ]));
+                name.unify_with(make_atom_model('It was all a silly thing. The plan was, you were supposed to reach the house at around one and they would sit you there, but that all went out of the window because Andrea was late. Then the traffic strikes, Julius lost his way, and it was quarter to two and still a good chunk of the city to travel. You were like, no way, let me take it now, I\'m not gonna loose another night. You felt bad because maybe that was a little childish, but you are anxious about sleep. If you took it at five, you probably wouldn\'t sleep until five. It was just past exam season, too. So in the end Julius said, whatever, take it here, we will lead you to the house, just don\'t do anything stupid.'));
+                description.unify_with(make_atom_model('It was all a silly thing. The plan was, you were supposed to reach the house at around one and they would sit you there, but that all went out of the window because Andrea was late. Then the traffic strikes, Julius lost his way, and it was quarter to two and still a good chunk of the city to travel. You were like, no way, let me take it now, I\'m not gonna loose another night. You felt bad because maybe that was a little childish, but you are anxious about sleep. If you took it at five, you probably wouldn\'t sleep until five. It was just past exam season, too. So in the end Julius said, whatever, take it here, we will lead you to the house, just don\'t do anything stupid.'));
+                next_deck.unify_with(make_atom_model('Intro'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Intro'), ]),
+]));
             options.once = true;
            options.hide_name = true;
                 DB.match(cont_0,
-                    make_structured_model('Player is in {}', [var_Location, ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Intro'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('And you even left your phone charging in the car, so it would have been a disaster even if they had actually been waiting for you on the station, which of course, they weren\'t. And you only realized that when the train started moving, and they were waving and shouting at you from the window.'));
+                description.unify_with(make_atom_model('And you even left your phone charging in the car, so it would have been a disaster even if they had actually been waiting for you on the station, which of course, they weren\'t. And you only realized that when the train started moving, and they were waving and shouting at you from the window.'));
+                next_deck.unify_with(make_atom_model('Intro'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Intro'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Intro'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('I mean Jesus Christ, everyone has an instinct to grab their phone before leaving. And you were so worried that what, they were going to abandon you there&quest;'));
+                description.unify_with(make_atom_model('I mean Jesus Christ, everyone has an instinct to grab their phone before leaving. And you were so worried that what, they were going to abandon you there&quest;'));
+                next_deck.unify_with(make_atom_model('Intro'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('6'), make_atom_model('Intro'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Intro'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Hey, if it\'s any comforting, they will feel pretty dumb about it, too. Why did they leave a tripping guy alone like that&quest; It is somewhat expected you would do something stupid.'));
+                description.unify_with(make_atom_model('Hey, if it\'s any comforting, they will feel pretty dumb about it, too. Why did they leave a tripping guy alone like that&quest; It is somewhat expected you would do something stupid.'));
+                next_deck.unify_with(make_atom_model('Intro'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('6'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('7'), make_atom_model('Intro'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('6'), make_atom_model('Intro'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Not that you necessarily are tripping yet. You still feel kind of normal. Kind of&quest;'));
+                description.unify_with(make_atom_model('Not that you necessarily are tripping yet. You still feel kind of normal. Kind of&quest;'));
+                next_deck.unify_with(make_atom_model('Intro'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('7'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('8'), make_atom_model('Intro'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('7'), make_atom_model('Intro'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You only now realize, you have been sitting on the bench for quite a while. You aren\'t sure how long.'));
+                description.unify_with(make_atom_model('You only now realize, you have been sitting on the bench for quite a while. You aren\'t sure how long.'));
+                next_deck.unify_with(make_atom_model('Intro'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('9'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('completed'), make_atom_model('Intro'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('9'), make_atom_model('Intro'), ]),
                 );
             },
 
@@ -41,127 +142,40 @@ const decks = {
         choices: [
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                const var_A  = make_empty_variable('?A' + (index == 1 ? '' : index));
-                const var_B  = make_empty_variable('?B' + (index == 1 ? '' : index));
-                name.unify_with(make_structured_model('Walk from {} to {}', [var_A, var_B, ]));
-                description.unify_with(make_structured_model('You walk from {} to {}.', [var_A, var_B, ]));
+                name.unify_with(make_atom_model(' Taken it, why&quest;'));
+                next_deck.unify_with(make_atom_model('Intro'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('Player is in {}', [var_B, ]),
-                make_structured_term('not', [make_structured_model('Player is in {}', [var_A, ])]),
-]));
-                const logic = () => {
-                    const cont_1 = () => {
-                        predicates['{} and {} are walkable'](var_A, var_B, index + 1, cont_0);
-                    };
-                    const cont_2 = () => {
-                        predicates['{} is a room'](var_A, index + 1, cont_1);
-                    };
-                    predicates['{} is a room'](var_B, index + 1, cont_2);
-
-                };
-                DB.match(logic,
-                    make_structured_model('Player is in {}', [var_A, ]),
-                );
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                const var_Item  = make_empty_variable('?Item' + (index == 1 ? '' : index));
-                const var_Place  = make_empty_variable('?Place' + (index == 1 ? '' : index));
-                const var_Followup  = make_empty_variable('?Followup' + (index == 1 ? '' : index));
-                name.unify_with(make_structured_model('Pick up {}', [var_Item, ]));
-                description.unify_with(make_structured_model('You have sucessfully picked up {}. {}', [var_Item, var_Followup, ]));
-                effects.unify_with(make_structured_term('', [
-                make_structured_model('Player has {}', [var_Item, ]),
-                make_structured_term('not', [make_structured_model('{} is in {}', [var_Item, var_Place, ])]),
-]));
-                const logic = () => {
-                    predicates['{} is the followup text for {}'](var_Followup, var_Item, index + 1, cont_0);
-
-                };
-                DB.match(logic,
-                    make_structured_model('Player is in {}', [var_Place, ]),
-                    make_structured_model('{} is in {}', [var_Item, var_Place, ]),
-                );
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                const var_Item  = make_empty_variable('?Item' + (index == 1 ? '' : index));
-                const var_Place  = make_empty_variable('?Place' + (index == 1 ? '' : index));
-                name.unify_with(make_structured_model('Drop {}', [var_Item, ]));
-                description.unify_with(make_structured_model('You have dropped {}.', [var_Item, ]));
-                effects.unify_with(make_structured_term('', [
-                make_structured_model('{} is in {}', [var_Item, var_Place, ]),
-                make_structured_term('not', [make_structured_model('Player has {}', [var_Item, ])]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Intro'), ]),
 ]));
                 DB.match(cont_0,
-                    make_structured_model('Player is in {}', [var_Place, ]),
-                    make_structured_model('Player has {}', [var_Item, ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Intro'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Take Paracetamol'));
-                description.unify_with(make_atom_model('You swallow the pill with a glass of water.'));
-                DB.match(cont_0,
-                    make_structured_model('Player is in {}', [make_atom_model('kitchen'), ]),
-                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Take Paracetamol'), ])]),
-                );
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Use computer'));
-                next_deck.unify_with(make_atom_model('Computer'));
-                DB.match(cont_0,
-                    make_structured_model('Player is in {}', [make_atom_model('bedroom'), ]),
-                );
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Watch TV'));
-                description.unify_with(make_atom_model('You watch some TV, but nothing very interesting is on. Mostly just more COVID cases.'));
-                DB.match(cont_0,
-                    make_structured_model('Player is in {}', [make_atom_model('living room'), ]),
-                    make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
-                    make_atom_model('Remote has batteries'),
-                );
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Watch TV.'));
-                description.unify_with(make_atom_model('You can\'t turn on the TV, becuase you misplaced the remote somewhere.'));
-                DB.match(cont_0,
-                    make_structured_model('Player is in {}', [make_atom_model('living room'), ]),
-                    make_structured_term('not', [make_structured_model('Player has {}', [make_atom_model('TV Remote'), ])]),
-                );
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Watch TV..'));
-                description.unify_with(make_atom_model('You try to turn on the TV, but to no avail. You realize the remote does not have batteries! You took them out when you were babysitting your nephiew last week. His dumb cartoons were giving you a headache.'));
-                DB.match(cont_0,
-                    make_structured_model('Player is in {}', [make_atom_model('living room'), ]),
-                    make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
-                    make_structured_term('not', [make_atom_model('Remote has batteries')]),
-                );
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Insert batteries into remote'));
+                name.unify_with(make_atom_model(' So you went and left the train car without them.'));
+                next_deck.unify_with(make_atom_model('Intro'));
                 effects.unify_with(make_structured_term('', [
-                make_atom_model('Remote has batteries'),
-                make_structured_term('not', [make_structured_model('Player has {}', [make_atom_model('Batteries'), ])]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Intro'), ]),
 ]));
                 DB.match(cont_0,
-                    make_structured_model('Player has {}', [make_atom_model('TV Remote'), ]),
-                    make_structured_model('Player has {}', [make_atom_model('Batteries'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Intro'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model(' There is a tingling feeling in your body.'));
+                next_deck.unify_with(make_atom_model('Intro'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('8'), make_atom_model('Intro'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('9'), make_atom_model('Intro'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('8'), make_atom_model('Intro'), ]),
                 );
             },
 
@@ -169,107 +183,326 @@ const decks = {
         late_actions: [
         ],
     },
-    'Self-examination' : {
+    'Use interactive kiosk' : {
         early_actions: [
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('End intro'));
-                description.unify_with(make_atom_model(' '));
-                next_deck.unify_with(make_atom_model('default'));
+                name.unify_with(make_atom_model('There are three interactive kiosks embedded into the back wall of the station, but two seem shut down. One is displaying a Windows error box, and the other is completely black. The third one seems working well enough, displaying the logo of the railway company on a white screen.'));
+                description.unify_with(make_atom_model('There are three interactive kiosks embedded into the back wall of the station, but two seem shut down. One is displaying a Windows error box, and the other is completely black. The third one seems working well enough, displaying the logo of the railway company on a white screen.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave for {} activated', [make_atom_model('Use interactive kiosk'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('0'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Use interactive kiosk'), ]),
+]));
             options.once = true;
            options.hide_name = true;
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('completed'), make_atom_model('Self-examination'), ]),
+                    make_structured_term('not', [make_structured_model('weave for {} activated', [make_atom_model('Use interactive kiosk'), ])]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('You feel pretty bad. You are so weak that if it wasn\'t for your splitting headache you would go straight to sleep.'));
-                description.unify_with(make_atom_model('You feel pretty bad. You are so weak that if it wasn\'t for your splitting headache you would go straight to sleep.'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model('You never were one for industrial art, but something about it\'s shape strikes you as aesthetically pleasing. Even the cover of dirt and flaking paint looks more like a decorative pattern, applied to break the monotony of it\'s round, regular edges. It brings to mind an image of a mountain rock, covered with moss in all the right spots.'));
+                description.unify_with(make_atom_model('You never were one for industrial art, but something about it\'s shape strikes you as aesthetically pleasing. Even the cover of dirt and flaking paint looks more like a decorative pattern, applied to break the monotony of it\'s round, regular edges. It brings to mind an image of a mountain rock, covered with moss in all the right spots.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('32'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('33'), make_atom_model('Use interactive kiosk'), ]),
 ]));
             options.once = true;
            options.hide_name = true;
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('32'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('You toss an turn and lay down for a few minutes, but it\'s pointless. The heat of your body, and the shard of pain in your skull, are unbearable. Besides, its already past dawn, and you forgot to roll down your blinds.'));
-                description.unify_with(make_atom_model('You toss an turn and lay down for a few minutes, but it\'s pointless. The heat of your body, and the shard of pain in your skull, are unbearable. Besides, its already past dawn, and you forgot to roll down your blinds.'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model('Despite of the dirt\'s appeal as part of the whole, it still feels kind of gross when you actually touch the screen.'));
+                description.unify_with(make_atom_model('Despite of the dirt\'s appeal as part of the whole, it still feels kind of gross when you actually touch the screen.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('16'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('33'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Use interactive kiosk'), ]),
 ]));
             options.once = true;
            options.hide_name = true;
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('15'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('33'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Nice try, but by the time you had made it out of bed and halfway across your room, you realize it doesn\'t matter anymore. You have gotten up.'));
-                description.unify_with(make_atom_model('Nice try, but by the time you had made it out of bed and halfway across your room, you realize it doesn\'t matter anymore. You have gotten up.'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model('The web of finger smudges on the surface tells you what to do. You tap the screen before you even need to think about it.'));
+                description.unify_with(make_atom_model('The web of finger smudges on the surface tells you what to do. You tap the screen before you even need to think about it.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('35'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Use interactive kiosk'), ]),
 ]));
             options.once = true;
            options.hide_name = true;
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('17'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('35'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('＂Ugh, not again...＂ you think to yourself.'));
-                description.unify_with(make_atom_model('＂Ugh, not again...＂ you think to yourself.'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model('After a slight delay, the kiosk displays the menu. The screen is quite low resolution, you can see the individual pixels with ease, but somehow to you, right now, that feels less like a shortcoming and more like a wonderful quirk. Even the slightly outdated quasi-material design of the menu feels like it\'s been given new life - tiny icons and lines wave up and down slightly, and you could swear that the time indicator in the right corner...'));
+                description.unify_with(make_atom_model('After a slight delay, the kiosk displays the menu. The screen is quite low resolution, you can see the individual pixels with ease, but somehow to you, right now, that feels less like a shortcoming and more like a wonderful quirk. Even the slightly outdated quasi-material design of the menu feels like it\'s been given new life - tiny icons and lines wave up and down slightly, and you could swear that the time indicator in the right corner...'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Use interactive kiosk'), ]),
 ]));
             options.once = true;
            options.hide_name = true;
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('You\'ve already taken two pills for a toothache yesterday, and you are pretty sure there is some kind of a limit of Paracetamol usage it is unwise to cross. You like, read it in a magazine once.'));
-                description.unify_with(make_atom_model('You\'ve already taken two pills for a toothache yesterday, and you are pretty sure there is some kind of a limit of Paracetamol usage it is unwise to cross. You like, read it in a magazine once.'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model('Oh right. The time. Its half past two. This suddenly reminds you were going to do something here. But what was it&quest;'));
+                description.unify_with(make_atom_model('Oh right. The time. Its half past two. This suddenly reminds you were going to do something here. But what was it&quest;'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Use interactive kiosk'), ]),
 ]));
             options.once = true;
            options.hide_name = true;
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Either way, there should be some Ibuprofen in your kitchen.'));
-                description.unify_with(make_atom_model('Either way, there should be some Ibuprofen in your kitchen.'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model('C\'mon. Focus.'));
+                description.unify_with(make_atom_model('C\'mon. Focus.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('completed'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('6'), make_atom_model('Use interactive kiosk'), ]),
 ]));
             options.once = true;
            options.hide_name = true;
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('That\'s actually a very sensible idea! You congratulate yourself in your head. That\'s probably what sober you would do, too.'));
+                description.unify_with(make_atom_model('That\'s actually a very sensible idea! You congratulate yourself in your head. That\'s probably what sober you would do, too.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('42'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('43'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('42'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You bring up the schedule option. The kiosk seemingly switches to a different app, overlayed in a small window over the old menu, with a completely different font and a clashing yellow-red-gray colour scheme that looks circa from 2005. You discover that, in fact, not everything looks beautiful on LSD.'));
+                description.unify_with(make_atom_model('You bring up the schedule option. The kiosk seemingly switches to a different app, overlayed in a small window over the old menu, with a completely different font and a clashing yellow-red-gray colour scheme that looks circa from 2005. You discover that, in fact, not everything looks beautiful on LSD.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('43'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('44'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('43'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You stare at the screen for a moment, trying to make out anything from it. It is very difficult.'));
+                description.unify_with(make_atom_model('You stare at the screen for a moment, trying to make out anything from it. It is very difficult.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('44'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('7'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('44'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You bring up the map of the railroad. It\'s full of lines with various colors, and names of stations that tell you nothing at all.'));
+                description.unify_with(make_atom_model('You bring up the map of the railroad. It\'s full of lines with various colors, and names of stations that tell you nothing at all.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('46'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('47'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('46'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Honestly, you\'re not even sure of the address of the house you were going to.'));
+                description.unify_with(make_atom_model('Honestly, you\'re not even sure of the address of the house you were going to.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('47'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('48'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('47'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You can find the station you are at, but what way was the train going, and what line&quest; One of the stations adjacent to yours is separated by quite a long chunk of green line, but is it because its actually farther away or is it just the way the diagram is laid out&quest;'));
+                description.unify_with(make_atom_model('You can find the station you are at, but what way was the train going, and what line&quest; One of the stations adjacent to yours is separated by quite a long chunk of green line, but is it because its actually farther away or is it just the way the diagram is laid out&quest;'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('49'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('50'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('49'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Would you even know this if you were sober&quest;'));
+                description.unify_with(make_atom_model('Would you even know this if you were sober&quest;'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('50'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('7'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('50'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Hmm.'));
+                description.unify_with(make_atom_model('Hmm.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('7'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('8'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('7'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Oh snap. There is a man behind you. Clearly he wants to use the kiosk. You\'re taking the only usable machine.'));
+                description.unify_with(make_atom_model('Oh snap. There is a man behind you. Clearly he wants to use the kiosk. You\'re taking the only usable machine.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('9'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('10'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('9'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You now realize you have probably been staring at it way too long then you should normally without doing anything. Shit, shit, shit. You suddenly feel very self-conscious. You can\'t handle the pressure.'));
+                description.unify_with(make_atom_model('You now realize you have probably been staring at it way too long then you should normally without doing anything. Shit, shit, shit. You suddenly feel very self-conscious. You can\'t handle the pressure.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('10'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('11'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('10'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('＂There you... go.＂ - you say with a slight stutter. The man nods with a faint smile and takes over the machine.'));
+                description.unify_with(make_atom_model('＂There you... go.＂ - you say with a slight stutter. The man nods with a faint smile and takes over the machine.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('12'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('13'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('12'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('You suddenly feel very stupid. Clearly, he thought nothing of you. Your behaviour was perfectly fine. You could have stayed there as long as you wanted to and finish your business.'));
+                description.unify_with(make_atom_model('You suddenly feel very stupid. Clearly, he thought nothing of you. Your behaviour was perfectly fine. You could have stayed there as long as you wanted to and finish your business.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('13'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('14'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('13'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Well, maybe it wasn\'t that bad. You can do something else in the meantime.'));
+                description.unify_with(make_atom_model('Well, maybe it wasn\'t that bad. You can do something else in the meantime.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('14'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('completed'), make_atom_model('Use interactive kiosk'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('14'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
@@ -277,61 +510,118 @@ const decks = {
         choices: [
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Examine yourself'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model(' Take a look at it first'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('32'), make_atom_model('Use interactive kiosk'), ]),
 ]));
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('0'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Try going to sleep anyway'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model(' Approach it straight away'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('15'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('35'), make_atom_model('Use interactive kiosk'), ]),
 ]));
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model(' Cover your windows and get back to sleep'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model(' Uhhhhh...'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('17'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Use interactive kiosk'), ]),
 ]));
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('16'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model(' No, seriously, get up to find painkillers'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model(' Ummmm...'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('5'), make_atom_model('Use interactive kiosk'), ]),
 ]));
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('16'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('4'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model(' Get up to find painkillers'));
-                next_deck.unify_with(make_atom_model('Self-examination'));
+                name.unify_with(make_atom_model(' ...Check when the next train comes...&quest;'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
                 effects.unify_with(make_structured_term('', [
-                make_structured_model('weave item {} for {}', [make_atom_model('3'), make_atom_model('Self-examination'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('6'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('42'), make_atom_model('Use interactive kiosk'), ]),
 ]));
                 DB.match(cont_0,
-                    make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Self-examination'), ]),
+                    make_structured_model('weave item {} for {}', [make_atom_model('6'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model(' ...See how far, like, you are from the house or something...'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('6'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('46'), make_atom_model('Use interactive kiosk'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('6'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model(' ...How long is the next station, anyway&quest; Maybe they will return for you.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('48'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('49'), make_atom_model('Use interactive kiosk'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('48'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model(' Wait, is someone staring at you&quest;'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('8'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('9'), make_atom_model('Use interactive kiosk'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('8'), make_atom_model('Use interactive kiosk'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model(' Escape immediately.'));
+                next_deck.unify_with(make_atom_model('Use interactive kiosk'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('11'), make_atom_model('Use interactive kiosk'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('12'), make_atom_model('Use interactive kiosk'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('11'), make_atom_model('Use interactive kiosk'), ]),
                 );
             },
 
@@ -339,22 +629,64 @@ const decks = {
         late_actions: [
         ],
     },
-    'Computer' : {
+    'Buying food' : {
         early_actions: [
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model('Hmm, what kind of food would you like'));
+                description.unify_with(make_atom_model('Hmm, what kind of food would you like'));
+                next_deck.unify_with(make_atom_model('Buying food'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_model('weave for {} activated', [make_atom_model('Buying food'), ]),
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('0'), make_atom_model('Buying food'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Buying food'), ]),
+]));
+            options.once = true;
+           options.hide_name = true;
+                DB.match(cont_0,
+                    make_structured_term('not', [make_structured_model('weave for {} activated', [make_atom_model('Buying food'), ])]),
+                );
+            },
+
         ],
         choices: [
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Check your email'));
-                description.unify_with(make_atom_model('No new messages!'));
-                cont_0();
+                name.unify_with(make_atom_model(' Burger'));
+                next_deck.unify_with(make_atom_model('Buying food'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Buying food'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('completed'), make_atom_model('Buying food'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Buying food'), ]),
+                );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Play minesweeper'));
-                description.unify_with(make_atom_model('This almost goes well, but you\'re bad at counting so you loose.'));
-                cont_0();
+                name.unify_with(make_atom_model(' Hot dog'));
+                next_deck.unify_with(make_atom_model('Buying food'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Buying food'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('completed'), make_atom_model('Buying food'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Buying food'), ]),
+                );
+            },
+
+            (name, description, effects, next_deck, options, cont_0) => {
+                const index = 0;
+                name.unify_with(make_atom_model(' Something that would please let me sleep'));
+                next_deck.unify_with(make_atom_model('Buying food'));
+                effects.unify_with(make_structured_term('', [
+                make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Buying food'), ])]),
+                make_structured_model('weave item {} for {}', [make_atom_model('completed'), make_atom_model('Buying food'), ]),
+]));
+                DB.match(cont_0,
+                    make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Buying food'), ]),
+                );
             },
 
         ],
@@ -363,301 +695,6 @@ const decks = {
     },
 };
 const predicates = {
-    '{} is a room': (head_0, index, cont_0) => {
-        new_backup_frame();
-        dc.add_new_step('<{} is a room> Entry' + (index == 1 ? '' : index));
-
-        trail.new_choice_point();
-
-        {
-            const model = make_atom_model('kitchen');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_0();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-
-        {
-            const model = make_atom_model('living room');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_0();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-
-        {
-            const model = make_atom_model('bathroom');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_0();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-
-        {
-            const model = make_atom_model('bedroom');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_0();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-        trail.remove_choice_point();
-
-        remove_backup_frame();
-    },
-
-    '{} is the followup text for {}': (head_0, head_1, index, cont_0) => {
-        new_backup_frame();
-        dc.add_new_step('<{} is the followup text for {}> Entry' + (index == 1 ? '' : index));
-
-        const cont_1 = () => {
-            {
-                const model = make_atom_model('Knife');
-                const model_name = model.pprint();
-                if (head_1.unify_with(model)){
-                    dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
-                    cont_0();
-                } else {
-                    dc.add_new_step(`Failed: ${head_1.dereferenced_value().direct_name()} = ${model_name}`);
-                }
-            }
-
-        };
-        const cont_2 = () => {
-            {
-                const model = make_atom_model('TV Remote');
-                const model_name = model.pprint();
-                if (head_1.unify_with(model)){
-                    dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
-                    cont_0();
-                } else {
-                    dc.add_new_step(`Failed: ${head_1.dereferenced_value().direct_name()} = ${model_name}`);
-                }
-            }
-
-        };
-        const cont_3 = () => {
-            {
-                const model = make_atom_model('Batteries');
-                const model_name = model.pprint();
-                if (head_1.unify_with(model)){
-                    dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
-                    cont_0();
-                } else {
-                    dc.add_new_step(`Failed: ${head_1.dereferenced_value().direct_name()} = ${model_name}`);
-                }
-            }
-
-        };
-        const cont_4 = () => {
-            {
-                const model = make_atom_model('Soap');
-                const model_name = model.pprint();
-                if (head_1.unify_with(model)){
-                    dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
-                    cont_0();
-                } else {
-                    dc.add_new_step(`Failed: ${head_1.dereferenced_value().direct_name()} = ${model_name}`);
-                }
-            }
-
-        };
-        trail.new_choice_point();
-
-        {
-            const model = make_atom_model('It\'s really shiny.');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_1();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-
-        {
-            const model = make_atom_model('It seems to be missing batteries.');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_2();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-
-        {
-            const model = make_atom_model('You\'re not really sure if they are AA or AAA.');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_3();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-
-        {
-            const model = make_atom_model('It\'s slippery! ');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_4();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-        trail.remove_choice_point();
-
-        remove_backup_frame();
-    },
-
-    '{} is connected to {}': (head_0, head_1, index, cont_0) => {
-        new_backup_frame();
-        dc.add_new_step('<{} is connected to {}> Entry' + (index == 1 ? '' : index));
-
-        const cont_1 = () => {
-            {
-                const model = make_atom_model('living room');
-                const model_name = model.pprint();
-                if (head_1.unify_with(model)){
-                    dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
-                    cont_0();
-                } else {
-                    dc.add_new_step(`Failed: ${head_1.dereferenced_value().direct_name()} = ${model_name}`);
-                }
-            }
-
-        };
-        const cont_2 = () => {
-            {
-                const model = make_atom_model('bathroom');
-                const model_name = model.pprint();
-                if (head_1.unify_with(model)){
-                    dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
-                    cont_0();
-                } else {
-                    dc.add_new_step(`Failed: ${head_1.dereferenced_value().direct_name()} = ${model_name}`);
-                }
-            }
-
-        };
-        const cont_3 = () => {
-            {
-                const model = make_atom_model('bedroom');
-                const model_name = model.pprint();
-                if (head_1.unify_with(model)){
-                    dc.add_new_step(`${head_1.direct_name()} = ${model_name}`);
-                    cont_0();
-                } else {
-                    dc.add_new_step(`Failed: ${head_1.dereferenced_value().direct_name()} = ${model_name}`);
-                }
-            }
-
-        };
-        trail.new_choice_point();
-
-        {
-            const model = make_atom_model('kitchen');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_1();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-
-        {
-            const model = make_atom_model('living room');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_2();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-
-        {
-            const model = make_atom_model('living room');
-            const model_name = model.pprint();
-            if (head_0.unify_with(model)){
-                dc.add_new_step(`${head_0.direct_name()} = ${model_name}`);
-                cont_3();
-            } else {
-                dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
-            }
-        }
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-        trail.remove_choice_point();
-
-        remove_backup_frame();
-    },
-
-    '{} and {} are walkable': (head_A, head_B, index, cont_0) => {
-        new_backup_frame();
-        dc.add_new_step('<{} and {} are walkable> Entry' + (index == 1 ? '' : index));
-
-        trail.new_choice_point();
-
-        predicates['{} is connected to {}'](head_A, head_B, index + 1, cont_0);
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-
-        predicates['{} is connected to {}'](head_B, head_A, index + 1, cont_0);
-
-        trail.restore_choice_point();
-        dc.add_new_step('backup restored');
-        trail.remove_choice_point();
-
-        remove_backup_frame();
-    },
-
     //Built-in predicates (a standard library of sorts)
     '{} is not {}':(A, B, index, cont) => {
         if (!A.unify_with(B)){

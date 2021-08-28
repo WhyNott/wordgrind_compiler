@@ -1,5 +1,3 @@
-# Actually, could I do a really stupid and ugly hack where I just replace charaters to alter default behaviour?
-
 Predicates:
   # facts
   - <kitchen> is a room
@@ -19,9 +17,6 @@ Predicates:
       or:
         - ?A is connected to ?B
         - ?B is connected to ?A
-
-Unique facts:
-  - weave item ?_ for ?_
 #note to self:
 # If I want multiple choices with the same name (and I do want that sometimes) I will need to represent them as a list rather than an object. It makes more sense that way, too.
 #Actually, this causes a lot of problems. I will need to rethink this approach.
@@ -91,8 +86,8 @@ default:
       available when:
         - Player is in <kitchen>
         - not: selected <Take Paracetamol>
-      displays:
-        You swallow the pill with a glass of water.
+      next deck:
+        Taking paracetamol
 
     Use computer:
       available when:
@@ -152,8 +147,8 @@ Self-examination:
             - Nice try, but by the time you had made it out of bed and halfway across your room, you realize it doesn't matter anymore. You have gotten up.
         - '> No, seriously, get up to find painkillers'
          
-    - '> Get up to find painkillers'
-    - ＂Ugh, not again...＂ you think to yourself.
+    - '> Get up to find painkillers':
+        - ＂Ugh, not again...＂ you think to yourself.
     - You've already taken two pills for a toothache yesterday, and you are pretty sure there is some kind of a limit of Paracetamol usage it is unwise to cross. You like, read it in a magazine once. 
     - Either way, there should be some Ibuprofen in your kitchen.
   Early actions:
@@ -167,8 +162,33 @@ Self-examination:
       options:
         once: true
         hide name: true
-        
-          
+
+Taking paracetamol:
+  Weave:
+    - Now, where did you put the thing
+    - '> Upper cupboard':
+        - Nope, it aint here. Just a bunch of cups and glasses.
+        - You do remember now, it was the middle drawer. You reach inside, and there it is!
+    - '> Lower cupboard under the sink':
+        - Nope, not here. There is a garbage bin and a bunch of detergents. You don't feel bad enough to drink those.
+        - Actually, the sight reminds you you store medicine in the middle drawer. You check, and yep, its there!
+    - '> Middle drawer':
+        - Thats right, middle drawer! Its clearly laying here among a bunch of pills and medicaments.
+    - You take a pill (should you take two) and drink it with a glass of water.
+  Early actions:
+    End painkiller:
+      displays:
+        ' '
+      available when:
+        - weave item <completed> for <Taking paracetamol>
+      causes:
+        - paracetamol taken
+      next deck:
+          default
+      options:
+        once: true
+        hide name: true
+    
 Initial state:
   condition:
     - Player is in <bedroom>
@@ -176,6 +196,5 @@ Initial state:
     - <Batteries> is in <kitchen>
     - <Soap> is in <bathroom>
     - <TV Remote> is in <living room>
-    - weave item <0> for <Self-examination>
   displays:
     You wake up in a cold sweat. You had nightmares all night, and now you have a horrible headache.

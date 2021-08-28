@@ -351,13 +351,14 @@ pub mod emission {
                 flatten_weave(deck.weave, &mut nodes, &mut edges);
                 //TODO: add initial early action that sets the initial value
 
+                let first_node: usize = 0;
                 let last_node = nodes[0];
                 for (e, v, r) in edges {
-                    //Note: we can replace the very last node with a text saying "completed" 
                     
+          
                     //for each element, add precondition for v and effect of r
                     let mut element = e.clone();
-                    element.preconds.push((parser::Term::Sentence(parser::Sentence{
+                    let precondition_element = parser::Term::Sentence(parser::Sentence{
                         name: new_atom("weave item {} for {}"),
                         elements: vec![
                             parser::Term::Sentence(parser::Sentence{
@@ -370,12 +371,37 @@ pub mod emission {
                                 elements: vec![],
                                 context: e.name.context.clone()
                             })
-
+                                
                         ],
                         context: e.name.context.clone()
-                    }), true));
+                    });
+
+                    let weave_activated = parser::Term::Sentence(parser::Sentence{
+                        name: new_atom("weave for {} activated"),
+                        elements: vec![
+                            parser::Term::Sentence(parser::Sentence{
+                                name: name,
+                                elements: vec![],
+                                context: e.name.context.clone()
+                            })
+                                
+                        ],
+                        context: e.name.context.clone()
+                    }); 
+                    
+                    //Hmm, so now I just need to make sure this doesn't activate once it
+                    //has been selected.
+                    if v == first_node {
+                        element.preconds.push((weave_activated.clone(), false));
+                        element.effects.push((weave_activated, true));
+                    } else {
+                        element.preconds.push((precondition_element.clone(), true));
+                        
+                    }
 
                     let next_node = if r != last_node {r.to_string()} else {"completed".to_string()};
+                    //remove the precondition weave number
+                    element.effects.push((precondition_element, false));
                     element.effects.push((parser::Term::Sentence(parser::Sentence{
                         name: new_atom("weave item {} for {}"),
                         elements: vec![
