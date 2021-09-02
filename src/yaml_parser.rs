@@ -65,13 +65,13 @@ pub fn document_parse(yaml_doc:&Yaml) -> Document {
 
 }
 
-fn element_parse(key:&Yaml, hash_data:&Yaml, tag: ElementType) -> Element {
+fn element_parse(key:&str, hash_data:&Yaml, tag: ElementType) -> Element {
     let emsg = "Incorrect document format";
     let mut v_map : HashMap<String, Variable> = HashMap::new();
     let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
 
     let name: Sentence = match term_parse(
-        key.as_str().expect(emsg), &mut v_map, context) {
+        key, &mut v_map, context) {
 
         Term::Sentence(s) => s,
     
@@ -239,8 +239,8 @@ fn weave_parse(deck_name: Atom, yaml_data: &Yaml) -> Vec<WeaveItem> {
     
     fn weave_parse_choice(deck_name: Atom, yaml_data: &Yaml, tape: &mut Vec<WeaveItem>) {
         let emsg = "Incorrect document format";
-        if let Yaml::Array(data) = yaml_data {
-            for item in data {
+        if let Yaml::Array(y_data) = yaml_data {
+            for item in y_data {
                 let item_name;
                 let item_contents;
                 if let Yaml::Hash(h) = item {
@@ -254,28 +254,55 @@ fn weave_parse(deck_name: Atom, yaml_data: &Yaml) -> Vec<WeaveItem> {
                 
                 let gather_name = item_name.to_string();
                 let mut choice_name = item_name.chars();
+
+                let nested_data : Option<&Yaml>;
+                let weave_element : Element;
                 // is choice
                 if choice_name.next().unwrap() == '>' {
-                    if let Some(nested_data) = item_contents{
+                    match item_contents { 
+                        Some(dict_data) if dict_data.is_array() =>  {
+                            let element_name : String = choice_name.collect();
+                            weave_element = create_element(deck_name, &element_name, ElementType::Choice);
+                            nested_data = Some(&dict_data);
+                            
+                        },
+                        Some(dict_data) => {
+                            let weave_data = &dict_data["weave"];
+                            if weave_data.is_badvalue() {
+                                nested_data = None;
+                            } else {
+                                nested_data = Some(weave_data);
+                            }
+                            
+                            let element_name : String = choice_name.collect();
+                            weave_element = element_parse(element_name.as_str(), dict_data, ElementType::Choice);
+                        },
+                        _=> {
+                            let element_name : String = choice_name.collect();
+                            weave_element = create_element(deck_name, &element_name, ElementType::Choice);
+                            nested_data = None;
+                            
+                        }
+                    }
+                    if let Some(n_data) = nested_data {
                         let index = tape.len();
                         //will be overwritten
                         let fake_element = create_element(deck_name, "test", ElementType::Choice);
-                        let name : String = choice_name.collect();
-                        let weave_element = create_element(deck_name, &name, ElementType::Choice);
                         tape.push(WeaveItem::Choice(fake_element, 0));
-                        weave_parse_choice(deck_name, nested_data, tape);
+                        weave_parse_choice(deck_name, &n_data, tape);
                         tape[index] = WeaveItem::Choice(weave_element, tape.len());
+                        
                     } else {
-                        let name : String = choice_name.collect();
-                        let weave_element = create_element(deck_name, &name, ElementType::Choice);
                         tape.push(WeaveItem::Choice(weave_element, tape.len()+1));
                     }
+                        
                 } else {
                     let weave_element = create_element(deck_name, &gather_name, ElementType::EarlyAction);
                     tape.push(WeaveItem::GatherPoint(weave_element));
                     //discard dict info for now
+                    }
                 }
-            }
+                
             
         } else {
             panic!(emsg)
@@ -288,24 +315,25 @@ fn weave_parse(deck_name: Atom, yaml_data: &Yaml) -> Vec<WeaveItem> {
 }
 
 fn deck_parse(deck_name: Atom, yaml_data:&Yaml) -> Deck {
+    let emsg = "Incorrect document format";
     let mut early_actions: Vec<Element> = Vec::new();
     if let Yaml::Hash(h) = &yaml_data["Early actions"] {
         for (key, value) in h {
-            early_actions.push(element_parse(key, value, ElementType::EarlyAction));
+            early_actions.push(element_parse(key.as_str().expect(emsg), value, ElementType::EarlyAction));
         }
     }
     
     let mut choices: Vec<Element> = Vec::new();
     if let Yaml::Hash(h) = &yaml_data["Choices"] {
         for (key, value) in h {
-            choices.push(element_parse(key, value, ElementType::Choice));
+            choices.push(element_parse(key.as_str().expect(emsg), value, ElementType::Choice));
         }
     }
     
     let mut late_actions: Vec<Element> = Vec::new();
     if let Yaml::Hash(h) = &yaml_data["Actions"] {
         for (key, value) in h {
-            late_actions.push(element_parse(key, value, ElementType::Action));
+            late_actions.push(element_parse(key.as_str().expect(emsg), value, ElementType::Action));
         }
     }
 
