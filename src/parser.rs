@@ -327,48 +327,4 @@ pub struct Document {
     pub special_facts: Vec<(Atom, SpecialFactType)>
 }
 
-use unicode_segmentation::UWordBounds;
-use std::collections::HashMap;
 
-pub fn term_parse(source: &mut UWordBounds,  v_map: &mut HashMap<String, Variable>, context: Context) -> Term {
-    if source.as_str() == "?" {
-        source.next();
-        //code for handling variable
-        let var = match v_map.get(source.as_str()) {
-            None => {
-                let v = new_variable(source.as_str().to_string(), context, false);
-                v_map.insert(source.as_str().to_string(), v);
-                v
-            },
-            Some(v) => *v
-
-        };
-        
-        Term::Variable(var)
-        
-    } else {
-        if source.as_str() == "<" {
-            source.next();
-        }
-        let mut sentence_name = String::new();
-        let mut elements = Vec::new();
-        //Ugh, its actually realy out of whack
-        loop {
-            match source.as_str() {
-                "?" | "<" => {
-                    elements.push(term_parse(source, v_map, context));
-                    sentence_name.push_str("{}");
-                },
-                ">" | "" => {
-                    let name = new_atom(&sentence_name);
-                    return Term::Sentence(Sentence {name, elements, context});
-                },
-                s => {
-                    sentence_name.push_str(s);
-                }
-            }
-
-        }
-    }
-    
-} 
