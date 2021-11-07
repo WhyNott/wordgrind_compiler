@@ -7,111 +7,77 @@ const decks = {
         choices: [
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('main menu'));
-                next_deck.unify_with(make_atom_model('menu'));
-                cont_0();
-            },
-
-        ],
-        late_actions: [
-        ],
-    },
-    'menu' : {
-        early_actions: [
-        ],
-        choices: [
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Continue'));
-                cont_0();
+                name.unify_with(make_atom_model('Hello'));
+                DB.match(cont_0,
+                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Hello'), ])]),
+                );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('New game'));
-                cont_0();
+                name.unify_with(make_atom_model('Hi'));
+                DB.match(cont_0,
+                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Hi'), ])]),
+                );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Sound options'));
-                next_deck.unify_with(make_atom_model('sound'));
-                cont_0();
+                name.unify_with(make_atom_model('Howdy'));
+                DB.match(cont_0,
+                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Howdy'), ])]),
+                );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Options'));
-                next_deck.unify_with(make_atom_model('nested menu'));
-                cont_0();
+                name.unify_with(make_atom_model('Test'));
+                DB.match(cont_0,
+                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Test'), ])]),
+                );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('return'));
-                next_deck.unify_with(make_atom_model('return'));
-                cont_0();
-            },
-
-        ],
-        late_actions: [
-        ],
-    },
-    'sound' : {
-        early_actions: [
-        ],
-        choices: [
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Sound effects'));
-                cont_0();
+                name.unify_with(make_atom_model('Cheer'));
+                DB.match(cont_0,
+                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Cheer'), ])]),
+                );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('Music'));
-                cont_0();
+                name.unify_with(make_atom_model('Aeou'));
+                DB.match(cont_0,
+                    make_structured_term('not', [make_structured_model('selected {}', [make_atom_model('Aeou'), ])]),
+                );
             },
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model('return'));
-                next_deck.unify_with(make_atom_model('return'));
-                cont_0();
-            },
+                const var_X  = make_empty_variable('?X' + (index == 1 ? '' : index));
+                const var_unn_13  = make_empty_variable('?unn_13' + (index == 1 ? '' : index));
+                name.unify_with(make_atom_model('This choice will only appear when there are less then 3 choices'));
+                const logic = () => {
+                    const cont_1 = () => {
+                        predicates['{} lesser than {}'](var_X, var_unn_13, index + 1, cont_0);
+                    };
+                    const cont_2 = () => {
+                        {
+                            const model = make_atom_model('3');
+                            const model_name = model.pprint();
+                            if (var_unn_13.unify_with(model)){
+                                dc.add_new_step(`${var_unn_13.direct_name()} = ${model_name}`);
+                                cont_1();
+                            } else {
+                                dc.add_new_step(`Failed: ${var_unn_13.dereferenced_value().direct_name()} = ${model_name}`);
+                            }
+                        }
+                    };
+                    predicates['{} prior choices available'](var_X, index + 1, cont_2);
 
-        ],
-        late_actions: [
-        ],
-    },
-    'nested menu' : {
-        early_actions: [
-        ],
-        choices: [
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Game'));
-                cont_0();
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Video'));
-                cont_0();
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('Sound'));
-                next_deck.unify_with(make_atom_model('sound'));
-                cont_0();
-            },
-
-            (name, description, effects, next_deck, options, cont_0) => {
-                const index = 0;
-                name.unify_with(make_atom_model('return'));
-                next_deck.unify_with(make_atom_model('return'));
-                cont_0();
+                };
+                logic();
             },
 
         ],
@@ -186,6 +152,18 @@ const predicates = {
     '{} lesser than {}':(A, B, index, cont) => {
         predicates['{} greater than {}'](B, A, index, cont);
     },
+
+    "{} prior choices available":(X, index, cont) => {
+        const current_choice_num = available_choices.length;
+        if (X.bound()) {
+            if (parseInt(X.content().value) == current_choice_num) {
+                cont();
+            }
+        } else {
+            X.unify_with(make_atom(current_choice_num));
+            cont();
+        }
+    }
  
 };
 

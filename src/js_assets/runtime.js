@@ -107,14 +107,13 @@ function apply_element(element) {
 }
 
 
+//Note to self: might be a good idea to group all of the global variables into one object, for easier serialization/saving.
 
 let deck_stack = [];
 
 let current_deck = {deck: "default", pre_choice:true};
 
 let available_choices = [];
-
-
 
 function find_choices(){
     const deck = decks[current_deck.deck];
@@ -124,7 +123,7 @@ function find_choices(){
     const effects     = make_empty_variable("effects"); 
     const next_deck   = make_empty_variable("next_deck");
     const options = {};
-    let choices = [];
+    available_choices = [];
     
     const cont = () => {
         const copy_term = (term) => {
@@ -154,7 +153,7 @@ function find_choices(){
             found_choice.effects = null;
         found_choice.next_deck = next_deck.bound() ? next_deck.value.value : null;
         found_choice.options = options;
-        choices.push(found_choice);
+        available_choices.push(found_choice);
         dc.add_new_step('Found: ' + found_choice.name.pprint(bracketed = false));
     };
 
@@ -283,7 +282,7 @@ function make_choice(n){
             //code for executing early action
             let action = choose_action(late=false, used=used_actions);
             if (action === null) {
-                available_choices = find_choices();
+                find_choices();
                 return;
             } else {
                 current_element = action;

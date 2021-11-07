@@ -65,5 +65,17 @@ const predicates = {
     '{} lesser than {}':(A, B, index, cont) => {
         predicates['{} greater than {}'](B, A, index, cont);
     },
+
+    "{} prior choices available":(X, index, cont) => {
+        const current_choice_num = available_choices.length;
+        if (X.bound()) {
+            if (parseInt(X.content().value) == current_choice_num) {
+                cont();
+            }
+        } else {
+            X.unify_with(make_atom(current_choice_num));
+            cont();
+        }
+    }
  
 };
