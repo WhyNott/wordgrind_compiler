@@ -1,0 +1,43 @@
+#necessarily
+
+#menu -> options blah sound blah nested menu -> sound -> option a, option b
+
+
+default:
+  Choices:
+    main menu:
+      next deck:
+        menu
+
+menu:  
+  Choices:
+    Continue:
+    New game:
+    Sound options:
+      next deck:
+        sound
+    Options:
+      next deck:
+        nested menu
+    return:
+      next deck:
+        return
+
+nested menu:
+  Choices:
+    Game:
+    Video:
+    Sound:
+      next deck:
+        sound
+    return:
+      next deck:
+        return
+
+sound:
+  Choices:
+    Sound effects:
+    Music:
+    return:
+      next deck:
+        return

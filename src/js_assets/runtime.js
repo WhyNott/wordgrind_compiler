@@ -230,6 +230,8 @@ const STATES = {
     LATE:2,
     EARLY:3
 };
+
+//Not quite done yet, something is wrong.
 function make_choice(n){
     
     let state = STATES.EARLY;
@@ -243,7 +245,12 @@ function make_choice(n){
         if (current_element.next_deck === null) {
             state = STATES.LATE;
         } else {
-            state = STATES.PUSH;
+            if (current_element.next_deck === "return") {
+                state = STATES.POP;
+            }
+            else {
+                state = STATES.PUSH;
+            }
         }
         
     
@@ -255,15 +262,21 @@ function make_choice(n){
         //code for executing late action 
             let action = choose_action(late=true, used=used_actions);
             if (action === null) {
-                state = STATES.POP;
+                state = STATES.EARLY;
             } else {
                 current_element = action;
                 apply_element(current_element);
                 if (current_element.next_deck === null) {
                     state = STATES.LATE;
                 } else {
-                    current_deck.pre_choice = false;
-                    state = STATES.PUSH;
+                    if (current_element.next_deck === "return") {
+                        state = STATES.POP;
+                    }
+                    else {
+                        current_deck.pre_choice = false;
+                        state = STATES.PUSH;
+                    }
+
                 }
             }
         } else if (state == STATES.EARLY) {
@@ -278,8 +291,13 @@ function make_choice(n){
                 if (current_element.next_deck === null ){
                     state = STATES.EARLY;
                 } else {
-                    current_deck.pre_choice = true;
-                    state = STATES.PUSH;
+                    if (current_element.next_deck === "return") {
+                        state = STATES.POP;
+                    }
+                    else {
+                        current_deck.pre_choice = true;
+                        state = STATES.PUSH;
+                    }
                 }
             }
             
