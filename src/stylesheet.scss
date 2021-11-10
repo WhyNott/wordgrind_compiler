@@ -1,0 +1,34 @@
+#storage{
+    display:none;
+}
+
+#description {
+    width: 40em;
+    height: 32em;
+    border: solid black 1px;
+    overflow: scroll;
+    margin: 0 auto;
+    padding: 0.5em;
+}
+
+#choices {
+    list-style-type: none;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    align-items: center;
+    li {
+        width: 25%;
+       // display: inline-block;
+        border: solid black 1px;
+        margin-top: 0.5em;
+        margin-bottom: 0.5em;
+        padding-top: 0.5em;
+        padding-bottom: 0.5em;
+        padding-left: 0.5em;
+
+        a {
+            text-decoration: none;
+        }
+    }
+}
