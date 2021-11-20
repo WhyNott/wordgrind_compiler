@@ -684,7 +684,7 @@ pub struct Element {
             body: process_body(
                 input.body.expect("There should really be a body by now."),
                 &mut continuations,
-                false,
+                true,
             ),
             continuations,
             context: input.context,
@@ -723,7 +723,7 @@ pub struct Element {
             explicit_uni::LogicVerb::Or(lvs) => {
                 let mut new_or = Vec::with_capacity(lvs.len());
                 for lv in lvs.into_iter() {
-                    new_or.push(process_body(lv, &mut conts, false));
+                    new_or.push(process_body(lv, &mut conts, last));
                 }
                 EmissionVerb::Or(new_or)
             }
