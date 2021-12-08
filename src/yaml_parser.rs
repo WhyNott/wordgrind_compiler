@@ -65,13 +65,13 @@ pub fn document_parse(yaml_doc:&Yaml) -> Document {
 
 }
 
-fn element_parse(key:&Yaml, hash_data:&Yaml, tag: ElementType) -> Element {
+fn element_parse(key:&str, hash_data:&Yaml, tag: ElementType) -> Element {
     let emsg = "Incorrect document format";
     let mut v_map : HashMap<String, Variable> = HashMap::new();
     let context = new_context("".to_string(), 0, 0, "Forged!".to_string());
 
     let name: Sentence = match term_parse(
-        key.as_str().expect(emsg), &mut v_map, context) {
+        key, &mut v_map, context) {
 
         Term::Sentence(s) => s,
     
@@ -239,8 +239,8 @@ fn weave_parse(deck_name: Atom, yaml_data: &Yaml) -> Vec<WeaveItem> {
     
     fn weave_parse_choice(deck_name: Atom, yaml_data: &Yaml, tape: &mut Vec<WeaveItem>) {
         let emsg = "Incorrect document format";
-        if let Yaml::Array(data) = yaml_data {
-            for item in data {
+        if let Yaml::Array(y_data) = yaml_data {
+            for item in y_data {
                 let item_name;
                 let item_contents;
                 if let Yaml::Hash(h) = item {
@@ -254,28 +254,55 @@ fn weave_parse(deck_name: Atom, yaml_data: &Yaml) -> Vec<WeaveItem> {
                 
                 let gather_name = item_name.to_string();
                 let mut choice_name = item_name.chars();
+
+                let nested_data : Option<&Yaml>;
+                let weave_element : Element;
                 // is choice
-                if choice_name.next().unwrap() == '>' {
-                    if let Some(nested_data) = item_contents{
+                if choice_name.next().unwrap() == '+' {
+                    match item_contents { 
+                        Some(dict_data) if dict_data.is_array() =>  {
+                            let element_name : String = choice_name.collect();
+                            weave_element = create_element(deck_name, &element_name, ElementType::Choice);
+                            nested_data = Some(&dict_data);
+                            
+                        },
+                        Some(dict_data) => {
+                            let weave_data = &dict_data["weave"];
+                            if weave_data.is_badvalue() {
+                                nested_data = None;
+                            } else {
+                                nested_data = Some(weave_data);
+                            }
+                            
+                            let element_name : String = choice_name.collect();
+                            weave_element = element_parse(element_name.as_str(), dict_data, ElementType::Choice);
+                        },
+                        _=> {
+                            let element_name : String = choice_name.collect();
+                            weave_element = create_element(deck_name, &element_name, ElementType::Choice);
+                            nested_data = None;
+                            
+                        }
+                    }
+                    if let Some(n_data) = nested_data {
                         let index = tape.len();
                         //will be overwritten
                         let fake_element = create_element(deck_name, "test", ElementType::Choice);
-                        let name : String = choice_name.collect();
-                        let weave_element = create_element(deck_name, &name, ElementType::Choice);
                         tape.push(WeaveItem::Choice(fake_element, 0));
-                        weave_parse_choice(deck_name, nested_data, tape);
+                        weave_parse_choice(deck_name, &n_data, tape);
                         tape[index] = WeaveItem::Choice(weave_element, tape.len());
+                        
                     } else {
-                        let name : String = choice_name.collect();
-                        let weave_element = create_element(deck_name, &name, ElementType::Choice);
                         tape.push(WeaveItem::Choice(weave_element, tape.len()+1));
                     }
+                        
                 } else {
                     let weave_element = create_element(deck_name, &gather_name, ElementType::EarlyAction);
                     tape.push(WeaveItem::GatherPoint(weave_element));
                     //discard dict info for now
+                    }
                 }
-            }
+                
             
         } else {
             panic!(emsg)
@@ -288,24 +315,25 @@ fn weave_parse(deck_name: Atom, yaml_data: &Yaml) -> Vec<WeaveItem> {
 }
 
 fn deck_parse(deck_name: Atom, yaml_data:&Yaml) -> Deck {
+    let emsg = "Incorrect document format";
     let mut early_actions: Vec<Element> = Vec::new();
     if let Yaml::Hash(h) = &yaml_data["Early actions"] {
         for (key, value) in h {
-            early_actions.push(element_parse(key, value, ElementType::EarlyAction));
+            early_actions.push(element_parse(key.as_str().expect(emsg), value, ElementType::EarlyAction));
         }
     }
     
     let mut choices: Vec<Element> = Vec::new();
     if let Yaml::Hash(h) = &yaml_data["Choices"] {
         for (key, value) in h {
-            choices.push(element_parse(key, value, ElementType::Choice));
+            choices.push(element_parse(key.as_str().expect(emsg), value, ElementType::Choice));
         }
     }
     
     let mut late_actions: Vec<Element> = Vec::new();
     if let Yaml::Hash(h) = &yaml_data["Actions"] {
         for (key, value) in h {
-            late_actions.push(element_parse(key, value, ElementType::Action));
+            late_actions.push(element_parse(key.as_str().expect(emsg), value, ElementType::Action));
         }
     }
 
@@ -395,7 +423,7 @@ pub fn term_parse(source: &str,  v_map: &mut HashMap<String, Variable>, context:
         source.to_string()
     };
 
-    return Term::Sentence(sentence_parse(&mut sentence_string.split_word_bounds().peekable(), v_map, context));
+    return Term::Sentence(sentence_parse(&mut sentence_string.split_word_bounds(), v_map, context));
 
 }
 
@@ -407,6 +435,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_if_open() {
+        //come to think of it, I am really not doing it the best way
         assert!(check_if_open(&mut "<asd> sdfsdff <sdfsdf>"       .split_word_bounds()) == true);
         assert!(check_if_open(&mut "<<asd> sdfsdff <sdfsdf>>"    .split_word_bounds()) == false);
         
@@ -455,60 +484,99 @@ pub fn check_if_open(source: &mut UWordBounds) -> bool {
     return !encountered_brackets;
 
 }
+#[derive(Debug, Clone)]
+enum Token {
+    OpenSentence,
+    CloseSentence,
+    Variable(String),
+    TextChunk(String)
+}
 
-
-/// This function assumes that the bound sequece have been checked that its not a variable
-/// and that it is closed (chained with < and > at the ends if it was detected to be open)
-pub fn sentence_parse(source: &mut Peekable<UWordBounds>,  v_map: &mut HashMap<String, Variable>, context: Context) -> Sentence {
+fn sentence_parse_from_tokens(index: &mut usize, tokens: Vec<Token>, v_map: &mut HashMap<String, Variable>, context: Context) -> Sentence {
     let mut sentence_name = String::new();
     let mut elements = Vec::new();
-
-    let emsg = "Unexpected end of string!";
-    let first_word = source.next().expect(emsg);
-    assert!(first_word == "<");
-
-    while let Some(word) = source.peek() {   
-        match *word {
-            "<" => {
-                elements.push(Term::Sentence(sentence_parse(source, v_map, context)));
+    loop {
+        *index += 1;
+        let token = tokens[*index].clone();
+        match token {
+            Token::OpenSentence => {
+                elements.push(Term::Sentence(
+                    sentence_parse_from_tokens(index, tokens.clone(), v_map, context)
+                ));
                 sentence_name.push_str("{}");
             },
-            ">" => {
-                source.next().expect(emsg);
+            Token::CloseSentence => {
                 let name = new_atom(&sentence_name);
                 return Sentence {name, elements, context};
             },
+            Token::Variable(var_name) => {
+                let var = match v_map.get(&var_name) {
+                    None => {
+                        let v = new_variable(var_name.to_string(), context, false);
+                        v_map.insert(var_name.to_string(), v);
+                        v
+                    },
+                    Some(v) => *v
+                };
+                
+                elements.push(Term::Variable(var));
+                sentence_name.push_str("{}");
+            },
+            Token::TextChunk(chunk) => {
+                sentence_name.push_str(&chunk);
+            },
+        }
+        
+    }
+    unreachable!("Missing closing bracket!")
+}
 
-            s => {
-                if source.next().expect(emsg) == "?" &&
-                    source.peek().is_some() &&
-                    !source.peek().expect(emsg).is_empty(){
-                        let var_name = source.next().expect(emsg);
-                        let var = match v_map.get(var_name) {
-                            None => {
-                                let v = new_variable(var_name.to_string(), context, false);
-                                v_map.insert(var_name.to_string(), v);
-                                v
-                            },
-                            Some(v) => *v
-                        };
-                
-                        elements.push(Term::Variable(var));
-                        sentence_name.push_str("{}");
-                        
+fn sentence_tokenize(words: Vec<&str>) -> Vec<Token> {
+    let mut tokens = Vec::new();
+    let emsg = "Unexpected end of string!";
+    let mut index = 0;
+    while index < words.len() {
+        let word = words[index];
+        match word {
+            "<" => {
+                tokens.push(Token::OpenSentence);
+            },
+            ">" => {
+                tokens.push(Token::CloseSentence);
+            },
+
+            "?" => {
+                if let Some(next_word) = words.get(index+1) {
+                    if next_word.is_empty() || *next_word == "<"
+                        || *next_word == ">" {
+                        tokens.push(Token::TextChunk("?".to_string()));
                     } else {
-                        sentence_name.push_str(s);
+                        tokens.push(Token::Variable(next_word.to_string()));
+                        index += 1; // skip the word of the variable
                     }
-                
+                } else {
+                    tokens.push(Token::TextChunk("?".to_string()));
+                }
+            },
+            
+            s => {
+                tokens.push(Token::TextChunk(s.to_string()));
                 
             }
             
-          
-            
         }
-         
+        index += 1;
     }
-    unreachable!("Missing closing bracket!")
+    tokens
+} 
+
+/// This function assumes that the bound sequece have been checked that its not a variable
+/// and that it is closed (chained with < and > at the ends if it was detected to be open)
+pub fn sentence_parse(word_bounds: &mut UWordBounds, v_map: &mut HashMap<String, Variable>, context: Context) -> Sentence {
+    let words : Vec<&str> = word_bounds.collect();
+    let tokens = sentence_tokenize(words);
+    let mut index = 0;
+    sentence_parse_from_tokens(&mut index, tokens, v_map, context)
 }
     
 

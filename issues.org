@@ -1,0 +1,34 @@
+* DONE [REWORK] Change the ways deck stack works
+  CLOSED: [2021-11-07 Sun 13:21]
+  Right now you can either specify a deck that an element leads to, or leave it blank in which case the stack pops. Blank is the default.
+  It would make more sense if the default was "just remain in current deck", and there was another setting called "return" that caused the stack to pop.  
+
+So the difference would be, stack would only be popped when the next deck is the "return" type.
+
+* TODO [BUG] Fix arithmethic 
+Note: would be useful to see whats broken about arithmethic.
+* TODO [BUG] Fix early action at beggining of game not outputting it's display
+* TODO [REWORK] Make it possible to quote things easily
+So, here are the possible situations:
+- "thing beginning in quotes"
+
+* DONE [BUG] Fix parsing of sentences
+  CLOSED: [2021-09-14 Tue 17:58]
+* TODO [FEATURE] Implement negation
+* TODO [BUG] Fix parser glitches appearing sometimes near variables
+* TODO [BUG] Fix bug with weaving
+To reproduce: check the interactive kiosk weave, one of the non-first options
+* TODO [FEATURE] Implement an easier way to return from completed weaves automatically
+  Perhaps it would have been sufficient to deploy it when a weave deck does not have any early actions.
+* TODO [FEATURE] Implement an easier way to make sure you can't pick same choice twice
+* TODO [REWORK] See about getting rid of available when section at all and just use special syntax for dynamic database terms
+Note: that would require logical negation first, since I am using "not" a lot.
+But overal this would be obviously the correct choice.
+* TODO [REWORK] Make "once" attribute on actions true by default
+I have no idea why its not that way already!
+* TODO [REWORK] Make the syntax consistent (as measured by the ability to memorize it without needing to look it up constantly)
+It should be systematic, in the way that whenever you ask yourself the question "did I do it that way, or the other?" I should just reason myself the answer from the first-ish principles.
+
+This probably includes giving everything consistent names. 
+* TODO [FEATURE] Allow importing/including other files
+Probably not /that/ difficult to implement, and I will need it sooner or later.

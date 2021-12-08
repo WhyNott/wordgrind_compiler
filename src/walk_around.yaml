@@ -27,8 +27,7 @@ default:
       available when:
         - not: selected <Begin examination>
       displays:
-        "What is happening with you&quest;"
-        #note: sentences can't end with a quotation mark for whatever reason, fix it
+        What is happening with you?
       next deck:
         Self-examination
       options:
@@ -138,16 +137,15 @@ Computer:
 
 Self-examination:
   Weave:
-    - '>Examine yourself'
+    - + Examine yourself
     - You feel pretty bad. You are so weak that if it wasn't for your splitting headache you would go straight to sleep.
-    - '>Try going to sleep anyway':
+    - + Try going to sleep anyway:
         - You toss an turn and lay down for a few minutes, but it's pointless. The heat of your body, and the shard of pain in your skull, are unbearable. Besides, its already past dawn, and you forgot to roll down your blinds.
-        # ᐳ ＂
-        - '> Cover your windows and get back to sleep':
+        - + Cover your windows and get back to sleep:
             - Nice try, but by the time you had made it out of bed and halfway across your room, you realize it doesn't matter anymore. You have gotten up.
-        - '> No, seriously, get up to find painkillers'
+        - + No, seriously, get up to find painkillers
          
-    - '> Get up to find painkillers':
+    - + Get up to find painkillers:
         - ＂Ugh, not again...＂ you think to yourself.
     - You've already taken two pills for a toothache yesterday, and you are pretty sure there is some kind of a limit of Paracetamol usage it is unwise to cross. You like, read it in a magazine once. 
     - Either way, there should be some Ibuprofen in your kitchen.
@@ -165,14 +163,14 @@ Self-examination:
 
 Taking paracetamol:
   Weave:
-    - Now, where did you put the thing
-    - '> Upper cupboard':
+    - Now, where did you put the thing?
+    - + Upper cupboard:
         - Nope, it aint here. Just a bunch of cups and glasses.
         - You do remember now, it was the middle drawer. You reach inside, and there it is!
-    - '> Lower cupboard under the sink':
+    - + Lower cupboard under the sink:
         - Nope, not here. There is a garbage bin and a bunch of detergents. You don't feel bad enough to drink those.
         - Actually, the sight reminds you you store medicine in the middle drawer. You check, and yep, its there!
-    - '> Middle drawer':
+    - + Middle drawer:
         - Thats right, middle drawer! Its clearly laying here among a bunch of pills and medicaments.
     - You take a pill (should you take two) and drink it with a glass of water.
   Early actions:
