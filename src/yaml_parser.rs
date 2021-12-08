@@ -258,7 +258,7 @@ fn weave_parse(deck_name: Atom, yaml_data: &Yaml) -> Vec<WeaveItem> {
                 let nested_data : Option<&Yaml>;
                 let weave_element : Element;
                 // is choice
-                if choice_name.next().unwrap() == '>' {
+                if choice_name.next().unwrap() == '+' {
                     match item_contents { 
                         Some(dict_data) if dict_data.is_array() =>  {
                             let element_name : String = choice_name.collect();
