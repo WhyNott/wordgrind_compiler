@@ -7,11 +7,19 @@ Predicates:
   - <It's really shiny.> is the followup text for <Knife>
   - <It seems to be missing batteries.> is the followup text for <TV Remote>
   - <You're not really sure if they are AA or AAA.> is the followup text for <Batteries>
-  - <It's slippery! > is the followup text for <Soap>
+  - <It's slippery!> is the followup text for <Soap>
   - <kitchen> is connected to <living room>
   - <living room> is connected to <bathroom>
   - <living room> is connected to <bedroom>
+
   
+  - predicate test:
+      or:
+        - a is true
+        - and:
+          - b is true
+          - c is true
+        - d is true
   # logic
   - ?A and ?B are walkable:
       or:
@@ -32,7 +40,7 @@ default:
         Self-examination
       options:
         once: true
-        #hide name: true
+#        hide name: true
         
     Show stats:
       available when:
@@ -137,9 +145,9 @@ Computer:
 
 Self-examination:
   Weave:
-    - + Examine yourself
+    - +Examine yourself
     - You feel pretty bad. You are so weak that if it wasn't for your splitting headache you would go straight to sleep.
-    - + Try going to sleep anyway:
+    - +Try going to sleep anyway:
         - You toss an turn and lay down for a few minutes, but it's pointless. The heat of your body, and the shard of pain in your skull, are unbearable. Besides, its already past dawn, and you forgot to roll down your blinds.
         - + Cover your windows and get back to sleep:
             - Nice try, but by the time you had made it out of bed and halfway across your room, you realize it doesn't matter anymore. You have gotten up.
@@ -170,7 +178,7 @@ Taking paracetamol:
     - + Lower cupboard under the sink:
         - Nope, not here. There is a garbage bin and a bunch of detergents. You don't feel bad enough to drink those.
         - Actually, the sight reminds you you store medicine in the middle drawer. You check, and yep, its there!
-    - + Middle drawer:
+    - + Middle drawer':
         - Thats right, middle drawer! Its clearly laying here among a bunch of pills and medicaments.
     - You take a pill (should you take two) and drink it with a glass of water.
   Early actions:

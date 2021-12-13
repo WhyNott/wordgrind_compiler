@@ -13,7 +13,7 @@ const decks = {
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
                 name.unify_with(make_atom_model('Begin examination'));
-                description.unify_with(make_atom_model('What is happening with you?'));
+                description.unify_with(make_atom_model('＂What is happening with you&quest;＂'));
                 next_deck.unify_with(make_atom_model('Self-examination'));
             options.once = true;
                 DB.match(cont_0,
@@ -279,7 +279,7 @@ const decks = {
         choices: [
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model(' Examine yourself'));
+                name.unify_with(make_atom_model('Examine yourself'));
                 next_deck.unify_with(make_atom_model('Self-examination'));
                 effects.unify_with(make_structured_term('', [
                 make_structured_model('weave for {} activated', [make_atom_model('Self-examination'), ]),
@@ -293,7 +293,7 @@ const decks = {
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model(' Try going to sleep anyway'));
+                name.unify_with(make_atom_model('Try going to sleep anyway'));
                 next_deck.unify_with(make_atom_model('Self-examination'));
                 effects.unify_with(make_structured_term('', [
                 make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('2'), make_atom_model('Self-examination'), ])]),
@@ -507,7 +507,7 @@ const decks = {
 
             (name, description, effects, next_deck, options, cont_0) => {
                 const index = 0;
-                name.unify_with(make_atom_model(' Middle drawer'));
+                name.unify_with(make_atom_model(' Middle drawer\''));
                 next_deck.unify_with(make_atom_model('Taking paracetamol'));
                 effects.unify_with(make_structured_term('', [
                 make_structured_term('not', [make_structured_model('weave item {} for {}', [make_atom_model('1'), make_atom_model('Taking paracetamol'), ])]),
@@ -813,6 +813,35 @@ const predicates = {
                 dc.add_new_step(`Failed: ${head_0.dereferenced_value().direct_name()} = ${model_name}`);
             }
         }
+
+        trail.restore_choice_point();
+        dc.add_new_step('backup restored');
+        trail.remove_choice_point();
+
+        remove_backup_frame();
+    },
+
+    'predicate test': (index, cont_0) => {
+        new_backup_frame();
+        dc.add_new_step('<predicate test> Entry' + (index == 1 ? '' : index));
+
+        const cont_1 = () => {
+            predicates['c is true'](index + 1, cont_0);
+
+        };
+        trail.new_choice_point();
+
+        predicates['a is true'](index + 1, cont_0);
+
+        trail.restore_choice_point();
+        dc.add_new_step('backup restored');
+
+        predicates['b is true'](index + 1, cont_1);
+
+        trail.restore_choice_point();
+        dc.add_new_step('backup restored');
+
+        predicates['d is true'](index + 1, cont_0);
 
         trail.restore_choice_point();
         dc.add_new_step('backup restored');
