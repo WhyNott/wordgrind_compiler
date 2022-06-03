@@ -126,17 +126,21 @@ impl fmt::Display for Clause {
 pub fn join_clauses_of_same_predicate(
     separate_clauses_by_predicate: &BTreeMap<(Atom, i32), Vec<Clause>>,
 ) -> BTreeMap<(Atom, i32), Clause> {
+    //map of values to be returned
     let mut joined_clause_by_predicate: BTreeMap<(Atom, i32), Clause> = BTreeMap::new();
+    //we iterate on every individual predicate
     for (pred_id, separate_clauses) in separate_clauses_by_predicate.iter() {
+        //if there is only one clause of the predicate, there is nothing to join
         if separate_clauses.len() == 1 {
             joined_clause_by_predicate.insert(*pred_id, separate_clauses[0].clone());
         } else {
             let (name, arity) = pred_id;
 
-            let mut joined_clause_head_args = Vec::with_capacity(*arity as usize);
+            
 
             let joined_clause_context = separate_clauses[0].context;
-
+            //we create n new variable (where n is the number of arguments in the head of the predicate)
+            let mut joined_clause_head_args = Vec::with_capacity(*arity as usize);
             for i in 0..*arity {
                 joined_clause_head_args.push(Term::Variable(new_variable(
                     i.to_string(),
@@ -144,11 +148,14 @@ pub fn join_clauses_of_same_predicate(
                     true,
                 )));
             }
+            //we create a new head for the predicate with the variables
             let joined_head = Sentence {
                 name: *name,
                 elements: joined_clause_head_args.clone(),
                 context: joined_clause_context,
             };
+            
+            //array to store the disjunct clauses after they are processed
             let mut disjunction: Vec<LogicVerb> =
                 Vec::with_capacity(separate_clauses.len() as usize);
 
