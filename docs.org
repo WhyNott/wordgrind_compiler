@@ -1,4 +1,4 @@
-#+TITLE: Wordgrind Documentantion for people who are not John Wanot
+#+TITLE: Wordgrind Documentantion 
 Note: this document is (always) a work-in-progress. New features are added and removed continuously. 
 * Basic usage: State, Decks, Choices
 ** Choices

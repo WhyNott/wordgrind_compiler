@@ -1,0 +1,20 @@
+* Wordgrind
+
+A turing-complete logic programming language for writing interactive fiction games. 
+
+See [[https://www.youtube.com/watch?v=bAhuik_OYSM&t=1s][conference talk]] here.
+
+** Usage
+~cargo run <input file> <output file>~
+
+~input file~ defaults to ~main.yaml~, and ~output file~ defaults to ~compiled.js~.
+
+
+** TODO Example
+#+BEGIN_SRC yaml
+
+#+END_SRC
+
+** Documentation
+
+For full language syntax see the [[./docs.org][documentation]].
