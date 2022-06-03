@@ -1,13 +1,150 @@
-#+TITLE: Wordgrind Documentantion 
+#+TITLE: Wordgrind Documentation for people who are not John Wanot
 Note: this document is (always) a work-in-progress. New features are added and removed continuously. 
+
+This documentation is valid for release: *v0.0.1*
+
 * Basic usage: State, Decks, Choices
 ** Choices
+Choices are the basic verbs that allow the players to interact with the world. A choice exists within a specific [[Decks][deck]], has certain prerequisites which must be met in order for it to be available, and causes some changes in the world after it has been chosen by the player. For example:
+
+#+BEGIN_SRC yaml 
+  default:
+    Choices:
+      Eat sandwich:
+        available when:
+          - Player has <sandwich>
+          - not: Player is on a diet
+        displays:
+          Om nom nom.
+        causes:
+          - Player is full
+          - removes: Player has <sandwich>  
+        next deck:
+          After dinner
+#+END_SRC
+
+Here is what the attributes mean:
++ *available when* :: List of [[Sentences][sentences]] that must be present in the [[State][state]] in order for this choice to be available. Alternatively, sentences prefixed with ~not:~ must not be present.
++ *displays* :: Text shown to the player after the choice is chosen.
++ *causes* :: List of [[Sentences][sentences]] that will be added to the [[State][state]] after this choice is chosen. Alternatively, sentences prefixed with ~remove:~ will be removed.
++ *next deck* :: Specifies the next [[Decks][deck]] that will become active after this choice is chosen. If this field is set to ~return~, the previous deck in the stack will become active instead. 
+
+And and all of these attributes are optional and can be left empty. The following is a perfectly valid choice:
+
+#+BEGIN_SRC yaml 
+  default:
+    Choices:
+      Eat sandwich:
+
+#+END_SRC
+
+In this case, the choice will always be available in the ~default~ deck, and choosing it will have no effect. 
 
 ** State
+The State is a dynamic database containing all the facts about the game which can change, in the form of a set of sentences.
+
+The initial condition of the state at the beginning of the game can be set using the following construct:
+
+#+BEGIN_SRC yaml 
+  Initial state:
+    condition:
+      - <sandwich> is on the <plate>
+      - <plate> is in the <room>
+    displays:
+      In front of you there is a plate containing a delicious sandwich. 
+#+END_SRC 
+The ~displays:~ section can be used to print the initial text at the beginning of the game, as well. 
+
+*** Sentences
+Sentences in Wordgrind are the basic building blocks that everything is composed of. They are used both for writing prose that will be shown to the player, and for creating game logic that is only visible to the creator. 
+
+Generally, a sentence is a sequence of words which can contain nested variables or other sentences. When one sentence is nested within another, we use angle brackets to delineate it. For example the sentence:
+
+#+BEGIN_SRC
+<sandwich> is on the <plate>
+#+END_SRC
+
+Actually contains three sentences in total:
+- ~{} is on the {}~
+- ~sandwich~
+- ~plate~
+
+In a later section we will show how to use [[variables][variables]] to match for those nested sentences.
 
 ** Decks
-* Intermediate usage: Variables, Weaving, Logic 
-** Variables
+Decks are a way of grouping different choices together for convenience. When a certain deck is active, the game will only check for choices which are assigned to that deck in particular. Choices can activate a deck with a ~next deck~ property. Only one deck can be active at a give time, but when a new deck is activated, the old one is popped onto a stack. A choice can return to the previous deck at the stack by using the ~return~ keyword in the ~next deck~ property.
+
+The bottom-most deck on the stack is always called ~default~ and it is the deck that is active when the game begins. 
+
+As an example, consider the following system of decks, operating a hierarchical menu:
+
+#+BEGIN_SRC yaml 
+default:
+  Choices:
+    main menu:
+      next deck:
+        menu
+
+menu:  
+  Choices:
+    Continue:
+    New game:
+    Sound options:
+      next deck:
+        sound
+    Options:
+      next deck:
+        options
+    Return to game:
+      next deck:
+        return
+
+options:
+  Choices:
+    Game:
+    Video:
+    Sound:
+      next deck:
+        sound
+    Back:
+      next deck:
+        return
+
+sound:
+  Choices:
+    Sound effects:
+    Music:
+    Back:
+      next deck:
+        return
+
+#+END_SRC 
+
+* TODO Intermediate usage: Variables, Weaving, Logic 
 ** Weaving
+#+BEGIN_SRC yaml 
+  Buying a sandwitch:
+    Weave:
+      - Well, what kind of a sandwitch would you like?
+      - + Just a regular one, please.:
+        - What kind of a sandwitch would you like?
+        - + Could I have a bacon and egg sandwitch?
+        - + A BLT, please.
+        - + How about one with some sausage? 
+        - And would you like granary, or plain bread?
+        - + Granary, please.
+        - + Plain bread.
+      - + Could I have some toast?:
+        - Would you like it with, or without butter?
+        - + Butter sounds good.
+        - + No butter, thank you.
+      - You leave the store with your baking, satisfied with your purchase. 
+#+END_SRC
+
+** Variables
+   <<variables>>
 ** Logic
-* Advanced usage: Actions
+*** Logic predicates
+*** Logic operators
+
+* TODO Advanced usage: Actions
