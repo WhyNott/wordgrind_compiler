@@ -2,7 +2,7 @@
 
 A turing-complete logic programming language for writing interactive fiction games. 
 
-See [[https://www.youtube.com/watch?v=bAhuik_OYSM&t=1s][conference talk]] here.
+See the [[https://www.youtube.com/watch?v=bAhuik_OYSM&t=1s][conference talk]] here.
 
 ** Usage
 ~cargo run <input file> <output file>~
@@ -10,10 +10,78 @@ See [[https://www.youtube.com/watch?v=bAhuik_OYSM&t=1s][conference talk]] here.
 ~input file~ defaults to ~main.yaml~, and ~output file~ defaults to ~compiled.js~.
 
 
-** TODO Example
+** Example
+
 #+BEGIN_SRC yaml
+Predicates:
+  - <kitchen> is a room
+  - <living room> is a room
+  - <bathroom> is a room
+  - <bedroom> is a room
+
+  - <kitchen> is connected to <living room>
+  - <living room> is connected to <bathroom>
+  - <living room> is connected to <bedroom>
+
+  - ?A and ?B can be walked between:
+      or:
+        - ?A is connected to ?B
+        - ?B is connected to ?A
+
+Unique facts:
+  - Player is in ?_
+
+Initial state:
+  condition:
+     - Player is in <bedroom>
+     - <soap> is in <bathroom>
+     - <TV remote> is in <living room>
+     - <knife> is in <kitchen>
+     - <TV> is in <living room>
+  displays:
+    You wake up in a cold sweat. You had nightmares 
+    all night, and now you have a horrible headache.
+
+
+default:
+  Choices:
+    Walk from ?A to ?B:
+      available when:
+        - Player is in ?A
+      such that:
+        and:
+          - ?B is a room
+          - ?A is a room
+          - ?A and ?B can be walked between
+      displays:
+        You walk from ?A to ?B.
+      causes:
+        - Player is in ?B
+     
+    Pick up ?Item:
+      available when:
+        - Player is in ?Place
+        - ?Item is in ?Place
+      displays:
+        You have picked up ?Item.
+      causes:
+        - Player has ?Item
+        - removes: ?Item is in ?Place
+        
+    Drop ?Item:
+      available when:
+        - Player is in ?Place
+        - Player has ?Item
+      displays:
+        You have dropped ?Item.
+      causes:
+        - ?Item is in ?Place
+        - removes: Player has ?Item
 
 #+END_SRC
+
+The code above will compile to a JavaScript file which can be played using the ~runme.html~ file in the ~src~ directory. The logic programming code in the ~Predicates~ section determines the rooms of the house and the rules for their connections, whereas the code in the ~Choices~ section uses this data to decide which choices the player has available to take. 
+
 
 ** Documentation
 
