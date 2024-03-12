@@ -2,7 +2,7 @@
 
 A turing-complete logic programming language for writing interactive fiction games. 
 
-See the [[https://www.youtube.com/watch?v=bAhuik_OYSM&t=1s][conference talk]] here.
+See the [[./wordgrind-1.pdf][PLIE'21 paper]] and [[https://www.youtube.com/watch?v=bAhuik_OYSM&t=1s][conference talk]] here.
 
 ** Usage
 ~cargo run <input file> <output file>~
